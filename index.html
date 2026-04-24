@@ -69,16 +69,20 @@
     button, select, input, textarea, .md3-chip, .md3-vibe, .md3-card {
       transition: all 180ms cubic-bezier(0.2, 0, 0, 1);
     }
+    /* Material-like select caret — CSS variable prevents dark-mode cascade bugs */
+    :root {
+      --select-arrow: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    }
+    html.dark {
+      --select-arrow: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    }
     select {
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+      background-image: var(--select-arrow);
       background-repeat: no-repeat;
       background-position: right 0.85rem center;
       background-size: 1.1rem;
       -webkit-appearance: none; -moz-appearance: none; appearance: none;
       padding-right: 2.75rem;
-    }
-    html.dark select {
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
     }
 
     .md3-btn-primary {
@@ -802,13 +806,13 @@
     //   5. Jika REMOTE.PUB_ID kosong, app guna hardcoded defaults.
     // ============================================================
     const REMOTE = {
-      PUB_ID: '',  // Contoh: '2PACX-1vSzw3AtittLm7WEzSE75FqAgRglL_wqfLvm9YDiaITxo7VIPRwCuGMe5MNVuGnn7muIf1rslVlyxny0'
+      PUB_ID: '',  // Contoh: '2PACX-1vRxxxxxxxxxxxxxxxxxxxxxxxxxxx'
       GIDS: {
         bidangSubjek: '0',
-        persona: '761892571',
-        objektif: '1853500475',
-        pedagogi: '106193777',
-        format: '1469161203'
+        persona: '',
+        objektif: '',
+        pedagogi: '',
+        format: ''
       },
       CACHE_KEY: 'pintarai_remote_config_v1',
       CACHE_HOURS: 6,        // reuse cache untuk 6 jam
