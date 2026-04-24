@@ -1,0 +1,2571 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PintarAI Kedah — Platform Penjanaan Arahan Lanjutan</title>
+  <meta name="description" content="Sistem Prompt Engineering untuk Guru dan Pentadbir JPNK. Jana arahan AI berstruktur untuk Gemini & NotebookLM." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --md-primary: #059669;
+      --md-primary-dark: #047857;
+      --md-primary-container: #D1FAE5;
+      --md-on-primary-container: #064E3B;
+      --md-secondary: #1A73E8;
+      --md-bg: #F8FAFC;
+      --md-surface: #FFFFFF;
+      --md-surface-variant: #F1F5F9;
+      --md-outline: #CBD5E1;
+      --md-on-surface: #0F172A;
+      --md-on-surface-muted: #475569;
+      --md-input-bg: #F1F5F9;
+      --md-card-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.02);
+    }
+    html.dark {
+      --md-primary: #10B981;
+      --md-primary-dark: #059669;
+      --md-primary-container: #064E3B;
+      --md-on-primary-container: #A7F3D0;
+      --md-bg: #0F172A;
+      --md-surface: #1E293B;
+      --md-surface-variant: #334155;
+      --md-outline: #475569;
+      --md-on-surface: #F1F5F9;
+      --md-on-surface-muted: #94A3B8;
+      --md-input-bg: #334155;
+      --md-card-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.2);
+    }
+    html, body {
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
+    }
+    body {
+      background-color: var(--md-bg);
+      color: var(--md-on-surface);
+      transition: background-color 240ms, color 240ms;
+    }
+    .md3-card {
+      background: var(--md-surface);
+      box-shadow: var(--md-card-shadow);
+      transition: background-color 240ms, box-shadow 240ms;
+    }
+    .md3-input {
+      background: var(--md-input-bg);
+      color: var(--md-on-surface);
+      transition: all 180ms;
+    }
+    .md3-label { font-size: 0.82rem; font-weight: 600; color: var(--md-on-surface); letter-spacing: 0.01em; }
+    .md3-helper { font-size: 0.75rem; color: var(--md-on-surface-muted); }
+    
+    button, select, input, textarea, .md3-chip, .md3-vibe, .md3-card {
+      transition: all 180ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      background-size: 1.1rem;
+      -webkit-appearance: none; -moz-appearance: none; appearance: none;
+      padding-right: 2.75rem;
+    }
+    html.dark select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    }
+
+    .md3-btn-primary {
+      background: var(--md-primary); color: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .md3-btn-primary:hover {
+      background: var(--md-primary-dark);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+      transform: translateY(-1px);
+    }
+    .md3-btn-primary:active { transform: translateY(0); }
+    .md3-btn-tonal {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+    }
+    .md3-btn-tonal:hover { filter: brightness(1.05); }
+    .md3-btn-outlined {
+      border: 1.5px solid var(--md-outline);
+      color: var(--md-on-surface);
+      background: transparent;
+    }
+    .md3-btn-outlined:hover { background: var(--md-surface-variant); }
+
+    .md3-chip {
+      border: 1.5px solid var(--md-outline);
+      background: var(--md-surface);
+      color: var(--md-on-surface-muted);
+    }
+    .md3-chip:hover { background: var(--md-surface-variant); }
+    .md3-chip.active {
+      background: var(--md-primary-container);
+      border-color: var(--md-primary);
+      color: var(--md-on-primary-container);
+      font-weight: 600;
+    }
+    .md3-chip.active .chip-check { opacity: 1; transform: scale(1); }
+    .chip-check { opacity: 0; transform: scale(0.6); transition: all 180ms; }
+
+    .segmented {
+      background: var(--md-surface-variant);
+      border: 1.5px solid var(--md-outline);
+    }
+    .seg-btn {
+      color: var(--md-on-surface-muted);
+      font-weight: 500;
+    }
+    .seg-btn.active {
+      background: var(--md-primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(5,150,105,0.25);
+    }
+
+    .md3-vibe {
+      background: var(--md-surface);
+      border: 1.5px solid var(--md-outline);
+    }
+    .md3-vibe:hover { border-color: var(--md-primary); transform: translateY(-2px); }
+    .md3-vibe.active {
+      background: var(--md-primary-container);
+      border-color: var(--md-primary);
+      border-width: 2px;
+    }
+
+    .md3-checkbox {
+      appearance: none; -webkit-appearance: none;
+      width: 1.25rem; height: 1.25rem;
+      border: 2px solid #64748B;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      background: transparent;
+    }
+    .md3-checkbox:checked {
+      background: var(--md-primary);
+      border-color: var(--md-primary);
+    }
+    .md3-checkbox:checked::after {
+      content: '';
+      position: absolute;
+      left: 5px; top: 1px;
+      width: 5px; height: 10px;
+      border: solid white;
+      border-width: 0 2.5px 2.5px 0;
+      transform: rotate(45deg);
+    }
+
+    .output-area {
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      background: var(--md-surface-variant);
+      color: var(--md-on-surface);
+      border-color: var(--md-outline);
+    }
+
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--md-outline); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: #1E293B;
+      color: white;
+      padding: 0.85rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: all 320ms cubic-bezier(0.2, 0, 0, 1);
+      z-index: 60;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      background: var(--md-surface);
+      box-shadow: 0 0 0 2px var(--md-primary);
+    }
+
+    /* hidden-smooth is kept only as a semantic marker. Actual hiding is via inline
+       style="display:none" so that JS setting style.display = '' can restore visibility. */
+    .hidden-smooth { /* no rule - use inline style for hiding */ }
+
+    .header-pattern {
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(5,150,105,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(26,115,232,0.06) 0%, transparent 50%);
+    }
+    html.dark .header-pattern {
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(16,185,129,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(59,130,246,0.08) 0%, transparent 50%);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+    .modal-content {
+      background: var(--md-surface);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      max-width: 26rem;
+      width: calc(100% - 2rem);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+      transform: scale(0.9);
+      transition: transform 200ms;
+    }
+    .modal-backdrop.open .modal-content { transform: scale(1); }
+
+    /* Template chip */
+    .template-chip {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border: 1px solid transparent;
+    }
+    .template-chip:hover { filter: brightness(1.05); }
+
+    /* Drawer for history */
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 360px; max-width: 90vw;
+      background: var(--md-surface);
+      box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+      transform: translateX(100%);
+      transition: transform 280ms cubic-bezier(0.2, 0, 0, 1);
+      z-index: 55;
+      overflow-y: auto;
+    }
+    .drawer.open { transform: translateX(0); }
+
+    kbd {
+      background: var(--md-surface-variant);
+      border: 1px solid var(--md-outline);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.72rem;
+      font-family: 'Roboto Mono', monospace;
+      color: var(--md-on-surface);
+    }
+
+    /* Range slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--md-outline);
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      background: var(--md-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(5,150,105,0.4);
+      transition: all 180ms;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width: 20px; height: 20px;
+      background: var(--md-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    /* Pulse for live */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+    @keyframes spin-sync { to { transform: rotate(360deg); } }
+    .spinning { animation: spin-sync 1s linear infinite; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ============== HEADER ============== -->
+  <header class="header-pattern pt-8 pb-6 px-4 sm:px-8 md:px-12">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.898 20.624 16.5 21.75l-.398-1.126a3.375 3.375 0 0 0-2.126-2.126L12.75 18l1.126-.398a3.375 3.375 0 0 0 2.126-2.126L16.5 14.25l.398 1.126a3.375 3.375 0 0 0 2.126 2.126L20.25 18l-1.126.398a3.375 3.375 0 0 0-2.126 2.126Z" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-xs font-semibold tracking-wider uppercase" style="color: var(--md-on-surface-muted);" data-i18n="brandDept">JPNK · Kedah Darul Aman</div>
+            <div class="text-sm font-medium" style="color: var(--md-on-surface);" data-i18n="brandUnit">Sektor Pembelajaran</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Language toggle -->
+          <button id="langToggle" class="md3-btn-outlined rounded-full px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5" title="Tukar bahasa">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m10.5 21 5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 0 1 6-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 0 1-3.827-5.802"/></svg>
+            <span id="langLabel">EN</span>
+          </button>
+          <!-- Theme toggle -->
+          <button id="themeToggle" class="md3-btn-outlined rounded-full px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5" title="Tukar tema">
+            <svg id="themeIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>
+          </button>
+          <!-- History drawer trigger -->
+          <button id="historyBtn" class="md3-btn-outlined rounded-full px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5" title="Sejarah">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            <span data-i18n="history">Sejarah</span>
+          </button>
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-800 text-sm font-semibold dark:bg-emerald-900/40 dark:text-emerald-200">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+            </span>
+            <span data-i18n="badge">Dasar Pendidikan Digital</span>
+          </div>
+          <!-- Sync Status Indicator -->
+          <div id="syncStatus" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold" style="display:none; background: var(--md-surface-variant); color: var(--md-on-surface-muted);" title="Status sinkronisasi dengan Google Sheet">
+            <svg id="syncIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+            <span id="syncLabel">Sync</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center sm:text-left max-w-4xl">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight" style="color: var(--md-on-surface);">
+          Pintar<span class="text-emerald-600 dark:text-emerald-400">AI</span> Kedah
+        </h1>
+        <p class="mt-3 text-base sm:text-lg max-w-3xl leading-relaxed" style="color: var(--md-on-surface-muted);" data-i18n="subtitle">
+          Platform Penjanaan Arahan Lanjutan (Prompt Engineering) untuk Penguasaan AI Generatif dalam Ekosistem Pendidikan.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============== MODE TOGGLE ============== -->
+  <div class="max-w-7xl w-full mx-auto px-4 sm:px-8 md:px-12 mb-6">
+    <div class="segmented inline-flex p-1.5 rounded-full shadow-sm flex-wrap" role="tablist">
+      <button id="modeGemini" class="seg-btn active px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
+        <span class="text-lg">🪄</span> GEMINI
+      </button>
+      <button id="modeNotebook" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
+        <span class="text-lg">🎙️</span> NOTEBOOKLM
+      </button>
+      <button id="modeImej" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
+        <span class="text-lg">🎨</span> IMEJ
+      </button>
+      <button id="modePentadbir" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
+        <span class="text-lg">📋</span> PENTADBIR
+      </button>
+    </div>
+  </div>
+
+  <!-- ============== TEMPLATE LIBRARY BAR ============== -->
+  <div id="templatesBar" class="max-w-7xl w-full mx-auto px-4 sm:px-8 md:px-12 mb-6 hidden-smooth" style="display:none;">
+    <div class="md3-card rounded-2xl p-4 flex items-center gap-3 flex-wrap">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+        <span class="text-sm font-semibold" data-i18n="myTemplates">Template Saya:</span>
+      </div>
+      <div id="templatesList" class="flex flex-wrap gap-2 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- ============== MAIN GRID ============== -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-8 md:px-12 pb-12 flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- ========== LEFT PANEL ========== -->
+      <section class="md3-card rounded-3xl p-6 sm:p-8 space-y-6">
+        <div class="flex items-center justify-between gap-3 pb-2 border-b" style="border-color: var(--md-outline);">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-700 dark:text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+            </div>
+            <h2 class="text-lg font-bold" id="configTitle" data-i18n="configTitle">Konfigurasi Arahan</h2>
+          </div>
+          <button id="randomBtn" class="md3-btn-tonal rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5" title="Contoh rawak">
+            🎲 <span data-i18n="randomEx">Contoh</span>
+          </button>
+        </div>
+
+        <!-- ========== TEXT FORM (Gemini/NotebookLM/Pentadbir) ========== -->
+        <div id="textForm" class="space-y-6">
+
+        <!-- 1. Bidang -->
+        <div>
+          <label class="md3-label block mb-2">1. <span data-i18n="lblBidang">Kategori Bidang</span></label>
+          <select id="bidang" class="md3-input w-full rounded-xl py-3 px-4 font-medium">
+            <option value="">-- <span data-i18n="selectBidang">Pilih Bidang</span> --</option>
+          </select>
+        </div>
+
+        <!-- 2. Subjek -->
+        <div>
+          <label class="md3-label block mb-2">2. <span data-i18n="lblSubjek">Fokus / Mata Pelajaran</span></label>
+          <select id="subjek" class="md3-input w-full rounded-xl py-3 px-4 font-medium" disabled></select>
+          <div id="subjekLainWrap" class="mt-3 hidden-smooth" style="display:none;">
+            <input type="text" id="subjekLain" placeholder="" class="md3-input w-full rounded-xl py-3 px-4" />
+          </div>
+        </div>
+
+        <!-- 3. Persona -->
+        <div>
+          <label class="md3-label block mb-2">3. <span data-i18n="lblPersona">Persona Sistem AI</span></label>
+          <div id="personaChips" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- 4. Topik -->
+        <div>
+          <label class="md3-label block mb-2">4. <span data-i18n="lblTopik">Konteks Utama / Topik</span></label>
+          <input type="text" id="topik" placeholder="" class="md3-input w-full rounded-xl py-3 px-4" />
+        </div>
+
+        <!-- 5. Rujukan -->
+        <div>
+          <label class="md3-label block mb-2">5. <span data-i18n="lblRujukan">Suntikan Standard / Rujukan</span> <span class="font-normal" style="color: var(--md-on-surface-muted);">(<span data-i18n="optional">Pilihan</span>)</span></label>
+          <textarea id="rujukan" rows="3" placeholder="" class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+          <p class="md3-helper mt-1.5" data-i18n="rujukanHelper">Cth: BS 5.1.1 — Membezakan haba dan suhu.</p>
+        </div>
+
+        <!-- 6. Tahap Pelajar -->
+        <div>
+          <label class="md3-label block mb-2">6. <span data-i18n="lblTahap">Tahap Pelajar / Sasaran</span></label>
+          <select id="tahap" class="md3-input w-full rounded-xl py-3 px-4 font-medium">
+            <option value="Umum">Umum / Tidak Spesifik</option>
+            <optgroup label="Prasekolah & Rendah">
+              <option value="Prasekolah">Prasekolah (4-6 tahun)</option>
+              <option value="Tahun 1">Tahun 1</option>
+              <option value="Tahun 2">Tahun 2</option>
+              <option value="Tahun 3">Tahun 3</option>
+              <option value="Tahun 4">Tahun 4</option>
+              <option value="Tahun 5">Tahun 5</option>
+              <option value="Tahun 6">Tahun 6</option>
+            </optgroup>
+            <optgroup label="Menengah">
+              <option value="Tingkatan 1">Tingkatan 1</option>
+              <option value="Tingkatan 2">Tingkatan 2</option>
+              <option value="Tingkatan 3">Tingkatan 3</option>
+              <option value="Tingkatan 4">Tingkatan 4</option>
+              <option value="Tingkatan 5">Tingkatan 5</option>
+              <option value="Tingkatan 6 Rendah">Tingkatan 6 Rendah</option>
+              <option value="Tingkatan 6 Atas">Tingkatan 6 Atas</option>
+            </optgroup>
+            <optgroup label="Dewasa/Profesional">
+              <option value="Guru">Guru</option>
+              <option value="Pentadbir Sekolah">Pentadbir Sekolah (GB/GPK)</option>
+              <option value="Pegawai PPD">Pegawai PPD</option>
+              <option value="Ibu Bapa">Ibu Bapa / Penjaga</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- 7. Objektif -->
+        <div>
+          <label class="md3-label block mb-2">7. <span data-i18n="lblObjektif">Objektif Tugasan AI</span></label>
+          <select id="objektif" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+          <div id="objektifLainWrap" class="mt-3 hidden-smooth" style="display:none;">
+            <textarea id="objektifLain" rows="2" placeholder="Nyatakan objektif tugasan AI anda sendiri..." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+            <p class="md3-helper mt-1.5">💡 Tip: Tulis dengan jelas dan spesifik. Cth: "Bina rancangan aktiviti Hari Terbuka Sekolah bertemakan STEM"</p>
+          </div>
+        </div>
+
+        <!-- Bilangan Output (conditional) -->
+        <div id="quantityWrap" class="hidden-smooth" style="display:none;">
+          <label class="md3-label block mb-2">
+            <span data-i18n="lblQuantity">Bilangan Output</span>:
+            <span id="quantityValue" class="text-emerald-600 font-bold">10</span>
+          </label>
+          <input type="range" id="quantity" min="1" max="50" value="10" />
+          <div class="flex justify-between text-xs mt-1" style="color: var(--md-on-surface-muted);">
+            <span>1</span><span>25</span><span>50</span>
+          </div>
+        </div>
+
+        <!-- 8. Pedagogi -->
+        <div id="pedagogiWrap">
+          <label class="md3-label block mb-2">8. <span data-i18n="lblPedagogi">Kerangka Pendekatan / Pedagogi</span></label>
+          <select id="pedagogi" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+        </div>
+
+        <!-- 9. Kreativiti & 10. Format -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="md3-label block mb-2">9. <span data-i18n="lblKreativiti">Aras Kreativiti</span></label>
+            <select id="kreativiti" class="md3-input w-full rounded-xl py-3 px-4 font-medium">
+              <option value="Sederhana">Sederhana</option>
+              <option value="Fakta Ketat">Fakta Ketat</option>
+              <option value="Tinggi (Luar Kotak)">Tinggi (Luar Kotak)</option>
+            </select>
+          </div>
+          <div>
+            <label class="md3-label block mb-2">10. <span data-i18n="lblFormat">Format Ekstrak</span></label>
+            <select id="format" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+          </div>
+        </div>
+
+        <!-- 11. Bahasa Output -->
+        <div>
+          <label class="md3-label block mb-2">11. <span data-i18n="lblBahasa">Bahasa Output</span></label>
+          <div id="bahasaOutput" class="flex gap-2">
+            <button data-bahasa="BM" class="md3-chip active rounded-full px-4 py-2 text-sm flex-1 text-center">BM sahaja</button>
+            <button data-bahasa="BI" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center">BI sahaja</button>
+            <button data-bahasa="Dwibahasa" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center">Dwibahasa</button>
+          </div>
+        </div>
+
+        <!-- 12. CoT -->
+        <div class="rounded-2xl p-4 border" style="background: var(--md-surface-variant); border-color: var(--md-outline);">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="cot" checked class="md3-checkbox mt-0.5" />
+            <div class="flex-1">
+              <div class="font-semibold text-sm" data-i18n="cotTitle">Gunakan Logik Analisis Langkah-demi-Langkah</div>
+              <div class="md3-helper" data-i18n="cotHelper">Chain-of-Thought (C.o.T) — AI akan menaakul sebelum menjawab untuk output lebih tepat.</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Vibe Control -->
+        <div id="vibeWrap" class="hidden-smooth" style="display:none;">
+          <label class="md3-label block mb-3"><span data-i18n="vibeLabel">Vibe Control</span> <span class="font-normal" style="color: var(--md-on-surface-muted);">(<span data-i18n="vibeHelper">Estetika Slide Deck</span>)</span></label>
+          <div id="vibeGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+        </div>
+
+        </div><!-- /#textForm -->
+
+        <!-- ========== IMAGE FORM (IMEJ Mode) ========== -->
+        <div id="imageForm" class="space-y-6 hidden-smooth" style="display:none;">
+
+          <!-- I1. Subjek Utama -->
+          <div>
+            <label class="md3-label block mb-2">1. Subjek Utama Imej <span class="text-rose-500">*</span></label>
+            <textarea id="imgSubject" rows="3" placeholder="Huraikan dengan jelas apa yang anda mahu dalam imej...&#10;Cth: Sekumpulan pelajar Tingkatan 4 sedang menjalankan eksperimen kimia di makmal sekolah, memerhati reaksi dalam kelalang kon dengan penuh minat." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+            <p class="md3-helper mt-1.5">💡 Lebih deskriptif lebih baik. Nyatakan watak, tindakan, dan butiran khusus.</p>
+          </div>
+
+          <!-- I2. Gaya Visual -->
+          <div>
+            <label class="md3-label block mb-2">2. Gaya Visual</label>
+            <div id="imgStyleGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div>
+          </div>
+
+          <!-- I3. Nisbah Aspek -->
+          <div>
+            <label class="md3-label block mb-2">3. Nisbah Aspek</label>
+            <div id="imgAspectGrid" class="grid grid-cols-5 gap-2"></div>
+          </div>
+
+          <!-- I4+I5 Latar & Konteks Budaya -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="md3-label block mb-2">4. Latar / Setting</label>
+              <select id="imgSetting" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            </div>
+            <div>
+              <label class="md3-label block mb-2">5. Konteks Budaya</label>
+              <select id="imgCulture" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            </div>
+          </div>
+
+          <!-- I6+I7 Pencahayaan & Palet -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="md3-label block mb-2">6. Pencahayaan</label>
+              <select id="imgLighting" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            </div>
+            <div>
+              <label class="md3-label block mb-2">7. Palet Warna</label>
+              <select id="imgPalette" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            </div>
+          </div>
+
+          <!-- I8+I9 Mood & Komposisi -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="md3-label block mb-2">8. Suasana / Mood</label>
+              <select id="imgMood" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            </div>
+            <div>
+              <label class="md3-label block mb-2">9. Komposisi</label>
+              <select id="imgComposition" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            </div>
+          </div>
+
+          <!-- I10. Elemen Tambahan -->
+          <div>
+            <label class="md3-label block mb-2">10. Elemen Tambahan <span class="font-normal" style="color: var(--md-on-surface-muted);">(Pilihan)</span></label>
+            <textarea id="imgExtras" rows="2" placeholder="Butiran spesifik: props, uniform, logo, warna objek tertentu..." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+          </div>
+
+          <!-- I11. Rujukan Gaya Artistik -->
+          <div>
+            <label class="md3-label block mb-2">11. Rujukan Gaya Artistik <span class="font-normal" style="color: var(--md-on-surface-muted);">(Pilihan)</span></label>
+            <input type="text" id="imgStyleRef" placeholder="Cth: seperti Studio Ghibli, Pixar, National Geographic photography..." class="md3-input w-full rounded-xl py-3 px-4" />
+          </div>
+
+          <!-- I12. Elakkan (Negative) -->
+          <div>
+            <label class="md3-label block mb-2">12. Elakkan <span class="font-normal" style="color: var(--md-on-surface-muted);">(Pilihan — Auto-termasuk default)</span></label>
+            <input type="text" id="imgAvoid" placeholder="Cth: tiada watak dewasa, tiada latar malam..." class="md3-input w-full rounded-xl py-3 px-4" />
+            <p class="md3-helper mt-1.5">⚠️ Secara automatik akan sertakan: no text artifacts, no distorted faces, no extra limbs, no watermarks.</p>
+          </div>
+
+          <!-- I13. Kualiti -->
+          <div>
+            <label class="md3-label block mb-2">13. Kualiti</label>
+            <div id="imgQualityGrid" class="flex gap-2">
+              <button data-quality="Standard" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center">Standard</button>
+              <button data-quality="High Quality" class="md3-chip active rounded-full px-4 py-2 text-sm flex-1 text-center">Berkualiti Tinggi</button>
+              <button data-quality="Ultra HD" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center">Ultra HD / 4K</button>
+            </div>
+          </div>
+
+          <!-- Info box -->
+          <div class="flex items-start gap-2.5 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/></svg>
+            <p class="text-xs text-purple-900 dark:text-purple-200 leading-relaxed">
+              <strong>Cara Guna:</strong> Salin prompt yang dijana, buka <a href="https://gemini.google.com" target="_blank" class="underline font-semibold">Gemini</a>, tampal, dan klik butang imej (🖼️). Gemini akan jana imej mengikut spesifikasi anda.
+            </p>
+          </div>
+
+        </div><!-- /#imageForm -->
+
+        <div class="pt-4 space-y-3">
+          <button id="generateBtn" class="md3-btn-primary w-full rounded-full py-4 px-6 font-bold text-base flex items-center justify-center gap-2.5 group">
+            <svg class="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg>
+            <span data-i18n="btnGenerate">JANA ARAHAN SISTEM</span>
+          </button>
+          <div class="flex gap-2">
+            <button id="saveTemplateBtn" class="md3-btn-outlined flex-1 rounded-full py-2.5 px-4 text-sm font-semibold flex items-center justify-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/></svg>
+              <span data-i18n="btnSaveTemplate">Simpan Template</span>
+            </button>
+            <button id="resetBtn" class="md3-btn-outlined rounded-full py-2.5 px-4 text-sm font-semibold flex items-center justify-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+              Reset
+            </button>
+          </div>
+          <p class="md3-helper text-center" data-i18n="kbdHelper">Tekan <kbd>Ctrl</kbd> + <kbd>Enter</kbd> untuk jana arahan pantas</p>
+        </div>
+      </section>
+
+      <!-- ========== RIGHT PANEL ========== -->
+      <section class="md3-card rounded-3xl p-6 sm:p-8 lg:sticky lg:top-4 lg:self-start">
+        <div class="flex items-center justify-between pb-4 border-b mb-4 flex-wrap gap-3" style="border-color: var(--md-outline);">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-700 dark:text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"/></svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold" data-i18n="outputTitle">Arahan Terhasil</h2>
+              <p class="md3-helper" data-i18n="outputSubtitle">Struktur XML · Prompt Engineering</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="qrBtn" class="md3-btn-tonal rounded-full w-9 h-9 flex items-center justify-center" title="QR Code">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z M6.75 6.75h.008v.008H6.75V6.75ZM6.75 16.5h.008v.008H6.75V16.5ZM16.5 6.75h.008v.008H16.5V6.75ZM13.5 13.5h.008v.008H13.5v-.008ZM13.5 19.5h.008v.008H13.5v-.008ZM19.5 13.5h.008v.008H19.5v-.008ZM19.5 19.5h.008v.008H19.5v-.008ZM16.5 16.5h.008v.008H16.5v-.008Z"/></svg>
+            </button>
+            <button id="downloadBtn" class="md3-btn-tonal rounded-full w-9 h-9 flex items-center justify-center" title="Muat Turun">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            </button>
+            <button id="copyBtn" class="md3-btn-primary rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
+              <svg id="copyIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"/></svg>
+              <span id="copyLabel" data-i18n="btnCopy">Salin</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Status chips -->
+        <div id="statusBar" class="flex flex-wrap gap-2 mb-4 text-xs">
+          <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-medium dark:bg-emerald-900/40 dark:text-emerald-200"><span data-i18n="stMode">Mode</span>: <span id="statusMode">Gemini</span></span>
+          <span class="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-medium dark:bg-blue-900/40 dark:text-blue-200"><span data-i18n="stPersona">Persona</span>: <span id="statusPersona">Guru Pakar</span></span>
+          <span id="statusCoT" class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-medium dark:bg-amber-900/40 dark:text-amber-200">C.o.T</span>
+          <span id="statusTahap" class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 font-medium dark:bg-purple-900/40 dark:text-purple-200 hidden-smooth" style="display:none;"></span>
+        </div>
+
+        <textarea id="output" readonly placeholder="" class="output-area w-full rounded-2xl p-5 border resize-none focus:ring-0 focus:outline-none" style="height: 500px; min-height: 400px;"></textarea>
+
+        <!-- Counter Bar -->
+        <div class="flex items-center justify-between mt-3 text-xs" style="color: var(--md-on-surface-muted);">
+          <div class="flex items-center gap-3">
+            <span><span data-i18n="words">Perkataan</span>: <span id="wordCount" class="font-semibold">0</span></span>
+            <span>•</span>
+            <span><span data-i18n="chars">Aksara</span>: <span id="charCount" class="font-semibold">0</span></span>
+            <span>•</span>
+            <span>≈ <span id="tokenCount" class="font-semibold">0</span> tokens</span>
+          </div>
+          <span id="contextBadge" class="hidden-smooth px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium dark:bg-green-900/40 dark:text-green-300" style="display:none;">OK</span>
+        </div>
+
+        <div class="mt-4 flex items-start gap-2.5 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+          <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
+          <p class="text-xs text-blue-900 dark:text-blue-200 leading-relaxed" data-i18n="tipText">
+            <strong>Tips:</strong> Tampal arahan ini ke dalam Gemini atau NotebookLM. Semakin lengkap input anda, semakin berkualiti output AI.
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============== FOOTER ============== -->
+  <footer class="border-t mt-auto" style="border-color: var(--md-outline); background: var(--md-surface);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 py-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+        <div class="text-center sm:text-left" style="color: var(--md-on-surface-muted);">
+          <div class="font-semibold" style="color: var(--md-on-surface);" data-i18n="footerDev">Dibangunkan Oleh:</div>
+          <div><span class="font-semibold" style="color: var(--md-on-surface);">Hafiz Husaini</span> <span style="color: var(--md-on-surface-muted);">·</span> Unit Teknologi Maklumat dan Komunikasi, Sektor Pembelajaran</div>
+          <div>Jabatan Pendidikan Negeri Kedah</div>
+        </div>
+        <div class="flex items-center gap-2 text-xs" style="color: var(--md-on-surface-muted);">
+          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.0</span>
+          <span>© 2026 JPNK</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- QR Modal -->
+  <div id="qrModal" class="modal-backdrop">
+    <div class="modal-content text-center">
+      <h3 class="text-xl font-bold mb-4" data-i18n="qrTitle">Kongsi via QR Code</h3>
+      <p class="md3-helper mb-4" data-i18n="qrHelper">Scan untuk buka arahan dalam peranti lain</p>
+      <div id="qrCanvas" class="flex justify-center mb-4 p-4 bg-white rounded-2xl"></div>
+      <p class="text-xs break-all mb-4 p-2 rounded-lg max-h-20 overflow-y-auto" style="background: var(--md-surface-variant); color: var(--md-on-surface-muted);" id="qrUrlPreview"></p>
+      <div class="flex gap-2">
+        <button id="qrCloseBtn" class="md3-btn-outlined flex-1 rounded-full py-2.5 text-sm font-semibold" data-i18n="btnClose">Tutup</button>
+        <button id="qrDownloadBtn" class="md3-btn-primary flex-1 rounded-full py-2.5 text-sm font-semibold" data-i18n="btnDownloadQR">Muat Turun QR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Drawer -->
+  <div id="historyDrawer" class="drawer p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold" data-i18n="historyTitle">Sejarah Arahan</h3>
+      <button id="historyCloseBtn" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="md3-helper mb-4" data-i18n="historyHelper">5 arahan terakhir anda tersimpan di peranti ini.</p>
+    <div id="historyList" class="space-y-3"></div>
+  </div>
+
+  <!-- ============== SCRIPT ============== -->
+  <script>
+  (() => {
+    'use strict';
+
+    // ============================================================
+    //  🔗 REMOTE CONFIG (Google Sheet)
+    // ============================================================
+    //  Cara set up:
+    //   1. Buat Google Sheet dengan 5 tab: Bidang_Subjek, Persona,
+    //      Objektif, Pedagogi, Format (struktur ikut README).
+    //   2. File > Share > Publish to web > Entire Document > CSV > Publish.
+    //   3. URL yang muncul mengandungi PUB_ID — salin ke REMOTE.PUB_ID
+    //      (bahagian selepas /d/e/ dan sebelum /pub).
+    //   4. Dapatkan gid setiap tab dari URL semasa buka tab itu
+    //      (nombor selepas #gid=). Masukkan ke REMOTE.GIDS.
+    //   5. Jika REMOTE.PUB_ID kosong, app guna hardcoded defaults.
+    // ============================================================
+    const REMOTE = {
+      PUB_ID: '',  // Contoh: '2PACX-1vSzw3AtittLm7WEzSE75FqAgRglL_wqfLvm9YDiaITxo7VIPRwCuGMe5MNVuGnn7muIf1rslVlyxny0'
+      GIDS: {
+        bidangSubjek: '0',
+        persona: '761892571',
+        objektif: '1853500475',
+        pedagogi: '106193777',
+        format: '1469161203'
+      },
+      CACHE_KEY: 'pintarai_remote_config_v1',
+      CACHE_HOURS: 6,        // reuse cache untuk 6 jam
+      TIMEOUT_MS: 8000       // abort fetch selepas 8 saat
+    };
+
+    // ============ CSV UTILITIES ============
+    function parseCSV(text) {
+      if (!text || !text.trim()) return [];
+      const lines = text.replace(/\r\n/g, '\n').split('\n').filter(l => l.length > 0);
+      if (lines.length < 2) return [];
+      const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+      return lines.slice(1).map(line => {
+        const cells = parseCSVLine(line);
+        const row = {};
+        headers.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
+        return row;
+      }).filter(r => Object.values(r).some(v => v)); // Skip empty rows
+    }
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') {
+          if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+          else inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          result.push(current); current = '';
+        } else {
+          current += c;
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
+    // ============ REMOTE CONFIG FETCHER ============
+    async function fetchTab(gid) {
+      if (!gid) return null;
+      const url = `https://docs.google.com/spreadsheets/d/e/${REMOTE.PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), REMOTE.TIMEOUT_MS);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return parseCSV(await res.text());
+      } catch (e) {
+        clearTimeout(timer);
+        console.warn(`[PintarAI] Fetch gagal untuk gid=${gid}:`, e.message);
+        return null;
+      }
+    }
+
+    async function loadRemoteConfig() {
+      if (!REMOTE.PUB_ID) return null;
+      try {
+        const [bidangSubjek, persona, objektif, pedagogi, format] = await Promise.all([
+          fetchTab(REMOTE.GIDS.bidangSubjek),
+          fetchTab(REMOTE.GIDS.persona),
+          fetchTab(REMOTE.GIDS.objektif),
+          fetchTab(REMOTE.GIDS.pedagogi),
+          fetchTab(REMOTE.GIDS.format)
+        ]);
+        return { bidangSubjek, persona, objektif, pedagogi, format, ts: Date.now() };
+      } catch (e) {
+        console.warn('[PintarAI] Gagal load remote config:', e);
+        return null;
+      }
+    }
+
+    function getCachedConfig() {
+      try {
+        const raw = localStorage.getItem(REMOTE.CACHE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        const ageHours = (Date.now() - data.ts) / 3600000;
+        return { data, fresh: ageHours < REMOTE.CACHE_HOURS };
+      } catch { return null; }
+    }
+
+    function saveCachedConfig(cfg) {
+      try { localStorage.setItem(REMOTE.CACHE_KEY, JSON.stringify(cfg)); } catch {}
+    }
+
+    // ============ APPLY REMOTE CONFIG to defaults ============
+    function applyRemoteConfig(cfg) {
+      if (!cfg) return;
+
+      // Bidang_Subjek: columns "bidang" and "subjek"
+      if (cfg.bidangSubjek && cfg.bidangSubjek.length) {
+        const bidangMap = {};
+        const bidangOrder = [];
+        cfg.bidangSubjek.forEach(r => {
+          const b = (r.bidang || '').trim();
+          const s = (r.subjek || '').trim();
+          if (!b) return;
+          if (!bidangMap[b]) { bidangMap[b] = []; bidangOrder.push(b); }
+          if (s) bidangMap[b].push(s);
+        });
+        if (bidangOrder.length) {
+          BIDANG_LIST = bidangOrder.map(v => ({ v, l: v.charAt(0) + v.slice(1).toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) }));
+          // Actually preserve exact casing from sheet
+          BIDANG_LIST = bidangOrder.map(v => ({ v, l: v }));
+          SUBJECTS = bidangMap;
+        }
+      }
+
+      // Persona: columns "label", "deskripsi" (and optional "default")
+      if (cfg.persona && cfg.persona.length) {
+        const newPersonas = cfg.persona
+          .filter(r => r.label && r.label.trim())
+          .map((r, i) => ({
+            id: r.label.trim(),
+            desc: (r.deskripsi || '').trim() || r.label.trim(),
+            default: (r.default || '').trim().toLowerCase() === 'yes' || i === 0
+          }));
+        // Ensure only one default
+        let hasDefault = false;
+        newPersonas.forEach(p => {
+          if (p.default && !hasDefault) hasDefault = true;
+          else p.default = false;
+        });
+        if (!hasDefault && newPersonas.length) newPersonas[0].default = true;
+        if (newPersonas.length) PERSONAS = newPersonas;
+      }
+
+      // Objektif: columns "mode" and "objektif"
+      if (cfg.objektif && cfg.objektif.length) {
+        const map = { gemini: [], notebooklm: [], pentadbir: [] };
+        cfg.objektif.forEach(r => {
+          const m = (r.mode || '').trim().toLowerCase();
+          const o = (r.objektif || '').trim();
+          if (map[m] && o) map[m].push(o);
+        });
+        // Keep the custom "Lain-lain" option at the end
+        const CUSTOM = '✍️ Lain-lain / Nyatakan Sendiri';
+        Object.keys(map).forEach(k => {
+          if (map[k].length) {
+            if (!map[k].includes(CUSTOM)) map[k].push(CUSTOM);
+            OBJECTIVES[k] = map[k];
+          }
+        });
+      }
+
+      // Pedagogi: column "nama"
+      if (cfg.pedagogi && cfg.pedagogi.length) {
+        const list = cfg.pedagogi
+          .map(r => (r.nama || '').trim())
+          .filter(Boolean);
+        if (list.length) PEDAGOGI_LIST = list;
+      }
+
+      // Format: columns "label" and "deskripsi"
+      if (cfg.format && cfg.format.length) {
+        const list = [];
+        const descMap = {};
+        cfg.format.forEach(r => {
+          const lbl = (r.label || '').trim();
+          const desc = (r.deskripsi || '').trim();
+          if (!lbl) return;
+          list.push(lbl);
+          if (desc) descMap[lbl] = desc;
+        });
+        if (list.length) {
+          FORMAT_LIST = list;
+          // Merge descriptions
+          Object.assign(FORMAT_DESC, descMap);
+        }
+      }
+    }
+
+    // ============ SYNC STATUS UI ============
+    function setSyncStatus(status, message) {
+      const bar = document.getElementById('syncStatus');
+      const icon = document.getElementById('syncIcon');
+      const label = document.getElementById('syncLabel');
+      if (!bar) return;
+      bar.style.display = '';
+      if (status === 'loading') {
+        icon.classList.add('spinning');
+        label.textContent = message || 'Sync...';
+        bar.style.color = 'var(--md-on-surface-muted)';
+      } else if (status === 'success') {
+        icon.classList.remove('spinning');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/>';
+        label.textContent = message || 'Tersinkronisasi';
+        bar.style.color = '#059669';
+        setTimeout(() => { bar.style.display = 'none'; }, 3500);
+      } else if (status === 'local') {
+        bar.style.display = 'none';
+      } else if (status === 'error') {
+        icon.classList.remove('spinning');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>';
+        label.textContent = message || 'Guna default';
+        bar.style.color = '#d97706';
+        setTimeout(() => { bar.style.display = 'none'; }, 4000);
+      }
+    }
+
+    // ============ DATA (defaults — can be overridden by Google Sheet) ============
+    let BIDANG_LIST = [
+      { v: "BAHASA", l: "Bahasa" },
+      { v: "SAINS & MATEMATIK", l: "Sains & Matematik" },
+      { v: "KEMANUSIAAN", l: "Kemanusiaan" },
+      { v: "VOKASIONAL DAN TEKNOLOGI", l: "Vokasional dan Teknologi" },
+      { v: "PENDIDIKAN ISLAM", l: "Pendidikan Islam" },
+      { v: "PRASEKOLAH (KSPK)", l: "Prasekolah (KSPK)" },
+      { v: "TINGKATAN 6", l: "Tingkatan 6" },
+      { v: "PENGURUSAN", l: "Pengurusan" },
+      { v: "PENDIDIKAN KHAS", l: "Pendidikan Khas (PPKI)" },
+      { v: "KOKURIKULUM", l: "Kokurikulum" },
+      { v: "HAL EHWAL MURID", l: "Hal Ehwal Murid (HEM)" }
+    ];
+
+    let SUBJECTS = {
+      "BAHASA": ["Bahasa Melayu", "Bahasa Inggeris", "Bahasa Arab", "Bahasa Cina", "Bahasa Tamil", "Kesusasteraan Melayu", "Kesusasteraan Inggeris", "Bahasa Isyarat Malaysia (BIM)"],
+      "SAINS & MATEMATIK": ["Sains", "Matematik", "Matematik Tambahan", "Biologi", "Kimia", "Fizik", "Sains Komputer", "Sains Sukan", "Matematik KSSR"],
+      "KEMANUSIAAN": ["Sejarah", "Geografi", "Pendidikan Jasmani", "Pendidikan Kesihatan", "Pendidikan Seni Visual", "Pendidikan Moral", "Sivik"],
+      "VOKASIONAL DAN TEKNOLOGI": ["Asas Sains Komputer", "Reka Bentuk dan Teknologi", "Ekonomi", "Prinsip Perakaunan", "Perniagaan", "Sains Rumah Tangga", "Grafik Komunikasi Teknikal", "Lukisan Kejuruteraan", "Reka Cipta"],
+      "PENDIDIKAN ISLAM": ["Pendidikan Islam", "Al-Quran Sunnah", "Syariah Islamiah", "Tasawwur Islam", "Maharat Al-Quran", "Hifz Al-Quran", "Pendidikan Al-Quran (KAFA)"],
+      "PRASEKOLAH (KSPK)": ["Tunjang Komunikasi", "Tunjang Sains & Teknologi", "Tunjang Fizikal & Estetika", "Tunjang Kerohanian & Moral", "Tunjang Kemanusiaan", "Keseluruhan Kurikulum"],
+      "TINGKATAN 6": ["Pengajian Am", "MUET", "Elektif Sains", "Elektif Kemanusiaan", "Pengajian Perniagaan", "Ekonomi STPM"],
+      "PENGURUSAN": ["Dialog Prestasi", "Kertas Kerja Program", "Minit Mesyuarat", "Teks Ucapan Rasmi", "Kajian Tindakan", "PLC/CPD", "Headcount/TOV/ETR", "SKPMg2", "Pelaporan PBD", "Post-Mortem Peperiksaan", "Intervensi Murid", "Program Transisi"],
+      "PENDIDIKAN KHAS": ["Kemahiran Asas Individu (KAI)", "Kemahiran Hidup", "Kemahiran Manipulatif", "Pengurusan Kendiri", "Rancangan Pendidikan Individu (RPI)"],
+      "KOKURIKULUM": ["Unit Beruniform", "Persatuan/Kelab", "Sukan & Permainan", "Program MSSM", "Pelaporan PAJSK"],
+      "HAL EHWAL MURID": ["Disiplin Murid", "Kaunseling", "Kebajikan Murid", "Skim Pinjaman Buku Teks", "Kesihatan Sekolah", "Program Anti-Buli"]
+    };
+
+    let OBJECTIVES = {
+      gemini: [
+        "Bina Modul/RPH",
+        "Jana Bank Soalan KBAT",
+        "Sediakan Kertas Kerja",
+        "Draf Surat Rasmi",
+        "Tulis Teks Ucapan",
+        "Bina Rubrik Pemarkahan",
+        "Jana Item PBD (Tahap Penguasaan)",
+        "Sediakan Soalan Mengikut Aras Bloom",
+        "Draf Pelaporan PBD Deskriptif",
+        "Bina Aktiviti Didik Hibur",
+        "Analisis Kesalahan Lazim Murid",
+        "Bina Latihan Pemulihan & Pengayaan",
+        "✍️ Lain-lain / Nyatakan Sendiri"
+      ],
+      notebooklm: [
+        "Formatkan Slide Deck",
+        "Ekstrak Nota Padat",
+        "Skrip Podcast",
+        "Rumusan Laporan",
+        "Pemetakan Aktiviti DSKP",
+        "Soalan Latih Tubi dari Nota",
+        "Glosari Istilah Penting",
+        "Quiz Interaktif dari Nota",
+        "Bandingkan Dua Sumber Rujukan",
+        "✍️ Lain-lain / Nyatakan Sendiri"
+      ],
+      pentadbir: [
+        "Draf Surat Siaran",
+        "Memo Arahan Dalaman",
+        "Surat Makluman kepada Ibu Bapa",
+        "Analisis Prestasi Peperiksaan",
+        "Skrip Pembentangan Dialog Prestasi",
+        "Post-Mortem Peperiksaan",
+        "Template Agenda Mesyuarat",
+        "Format Minit Mesyuarat",
+        "Ringkasan Perbincangan Mesyuarat",
+        "Laporan Program / Aktiviti",
+        "Kertas Cadangan Program",
+        "Teks Ucapan Majlis Rasmi",
+        "✍️ Lain-lain / Nyatakan Sendiri"
+      ]
+    };
+
+    let PERSONAS = [
+      { id: "Guru Pakar", desc: "Pakar Pendidikan & Guru Cemerlang dengan pengalaman luas dalam pedagogi moden dan DSKP KPM", default: true },
+      { id: "Pemeriksa Skema", desc: "Pemeriksa Kertas Peperiksaan Kanan yang mahir dengan skema pemarkahan Lembaga Peperiksaan Malaysia" },
+      { id: "Pakar Psikologi", desc: "Pakar Psikologi Pendidikan & Motivasi Kanak-Kanak/Remaja" },
+      { id: "Pentadbir/SLT", desc: "Pakar Pengurusan Strategik Sekolah (Senior Leadership Team) yang berpengalaman dengan SKPMg2" },
+      { id: "Pemudah Cara PLC", desc: "Pemudah Cara Professional Learning Community untuk pembangunan profesional guru" },
+      { id: "Penulis Kreatif", desc: "Penulis Kreatif profesional dengan latar belakang pendidikan Malaysia" },
+      { id: "Jurulatih Utama (JU)", desc: "Jurulatih Utama (Master Trainer) bertauliah KPM dalam bidang pedagogi dan kurikulum" }
+    ];
+
+    const VIBES = [
+      { id: "Corporate", label: "Corporate", desc: "Profesional · Navy", emoji: "💼",
+        keywords: "[Clean Corporate Layout], [Navy & White Palette], [Data-Driven Design], [16:9 Business Formal] — sans-serif typography with clean data cards and minimal icons" },
+      { id: "Academic", label: "Academic", desc: "Ilmiah · Serif", emoji: "📚",
+        keywords: "[University Lecture Deck], [Structured Info Design], [Formal Academic Layout] — scholarly serif typography, muted earth tones, citation-ready with numbered sections" },
+      { id: "Kids Wonder", label: "Kids Wonder", desc: "Ceria · Warna-warni", emoji: "🎨",
+        keywords: "[Playful Educational Design], [Vibrant Primary Colors], [Engaging Visuals] — rounded shapes, hand-drawn illustrations, large friendly fonts for young learners" },
+      { id: "Future STEM", label: "Future STEM", desc: "Tech · Neon", emoji: "🚀",
+        keywords: "[Futuristic AI Interface], [Neon Cyan/Magenta Accents], [Dark Mode UI] — geometric grids, tech-inspired monospace headers, holographic glow effects" },
+      { id: "Infographic", label: "Infographic", desc: "Data · Stats", emoji: "📊",
+        keywords: "[Infographic Style], [Icon-Based Layout], [Data Storytelling] — large statistics, flat icon system, charts and progress bars with bold numbers" },
+      { id: "Cinematic", label: "Cinematic", desc: "Dramatik", emoji: "🎬",
+        keywords: "[Visual Narrative Layout], [Cinematic Storytelling], [Spotlight Composition] — dark dramatic backgrounds, high contrast, widescreen with gradient overlays" },
+      { id: "Apple Pitch", label: "Apple Pitch", desc: "Minimalis", emoji: "🍎",
+        keywords: "[Apple Keynote Style], [Oversized Typography], [Generous Whitespace] — ultra-minimalist with single hero element per slide and precise alignment" },
+      { id: "Minimal Zen", label: "Minimal Zen", desc: "Lapang", emoji: "🍃",
+        keywords: "[Minimalist Aesthetic], [Ample Whitespace], [Distraction-Free Layout] — soft pastel palette, light serif accents, one idea per slide, calm and focused" }
+    ];
+
+    const RANDOM_EXAMPLES = [
+      {
+        mode: 'gemini', bidang: 'SAINS & MATEMATIK', subjek: 'Matematik',
+        persona: 'Guru Pakar', topik: 'Fungsi Kuadratik — Lengkungan dan Titik Maksimum',
+        rujukan: 'KSSM Matematik Tingkatan 4, Bab 2: Fungsi Kuadratik\nSP 2.1: Menjelaskan bentuk am fungsi kuadratik',
+        objektif: 'Jana Bank Soalan KBAT', tahap: 'Tingkatan 4', pedagogi: 'HOTS Framework',
+        kreativiti: 'Sederhana', format: 'Jadual Markdown', bahasa: 'BM', cot: true, qty: 10
+      },
+      {
+        mode: 'gemini', bidang: 'BAHASA', subjek: 'Bahasa Melayu',
+        persona: 'Penulis Kreatif', topik: 'Karangan Argumentatif — Cabaran Generasi Z dalam Era Digital',
+        rujukan: '', objektif: 'Bina Modul/RPH', tahap: 'Tingkatan 5', pedagogi: 'Flipped Classroom',
+        kreativiti: 'Tinggi (Luar Kotak)', format: 'Template RPH KPM', bahasa: 'BM', cot: true
+      },
+      {
+        mode: 'notebooklm', bidang: 'SAINS & MATEMATIK', subjek: 'Biologi',
+        persona: 'Guru Pakar', topik: 'Sistem Respirasi Manusia — Pertukaran Gas di Alveolus',
+        rujukan: 'DSKP Biologi Tingkatan 4, Tema 2', objektif: 'Formatkan Slide Deck',
+        tahap: 'Tingkatan 4', kreativiti: 'Sederhana', format: 'Slide Outline', bahasa: 'Dwibahasa',
+        cot: true, vibe: 'Future STEM'
+      },
+      {
+        mode: 'pentadbir', bidang: 'PENGURUSAN', subjek: 'Dialog Prestasi',
+        persona: 'Pentadbir/SLT', topik: 'Analisis Prestasi SPM 2025 — Sekolah Menengah Kebangsaan',
+        rujukan: 'GPS sekolah turun 0.3 berbanding 2024. Subjek kritikal: Matematik, Sains, Sejarah.',
+        objektif: 'Skrip Pembentangan Dialog Prestasi', tahap: 'Pentadbir Sekolah',
+        kreativiti: 'Fakta Ketat', format: 'Teks Berstruktur', bahasa: 'BM', cot: true
+      },
+      {
+        mode: 'pentadbir', bidang: 'PENGURUSAN', subjek: 'Minit Mesyuarat',
+        persona: 'Pentadbir/SLT', topik: 'Mesyuarat Panitia Matematik Bil. 1/2026',
+        rujukan: '', objektif: 'Template Agenda Mesyuarat', tahap: 'Guru',
+        kreativiti: 'Fakta Ketat', format: 'Format Minit Mesyuarat', bahasa: 'BM', cot: false
+      },
+      {
+        mode: 'gemini', bidang: 'PENDIDIKAN ISLAM', subjek: 'Pendidikan Islam',
+        persona: 'Guru Pakar', topik: 'Adab Menuntut Ilmu — Penerapan Nilai Murni',
+        rujukan: '', objektif: 'Bina Modul/RPH', tahap: 'Tingkatan 2',
+        pedagogi: 'i-THINK', kreativiti: 'Sederhana', format: 'Template RPH KPM',
+        bahasa: 'BM', cot: true
+      }
+    ];
+
+    // Objectives that show quantity slider
+    const QUANTITY_OBJECTIVES = {
+      'Jana Bank Soalan KBAT': { max: 50, default: 10, label: 'Bilangan Soalan' },
+      'Sediakan Soalan Mengikut Aras Bloom': { max: 50, default: 10, label: 'Bilangan Soalan' },
+      'Soalan Latih Tubi dari Nota': { max: 50, default: 10, label: 'Bilangan Soalan' },
+      'Formatkan Slide Deck': { max: 30, default: 12, label: 'Bilangan Slide' },
+      'Ekstrak Nota Padat': { max: 20, default: 5, label: 'Bilangan Poin' },
+      'Bina Aktiviti Didik Hibur': { max: 20, default: 5, label: 'Bilangan Aktiviti' },
+      'Quiz Interaktif dari Nota': { max: 30, default: 10, label: 'Bilangan Soalan' }
+    };
+
+    // Descriptive mappings for richer prompts (adopted from Gemini approach)
+    const KREATIVITI_DESC = {
+      'Sederhana': 'Sederhana — seimbang antara kreativiti dan ketepatan fakta',
+      'Fakta Ketat': 'Rendah — sangat ketat dengan fakta, dilarang sama sekali mereka-reka maklumat (zero-hallucination mode)',
+      'Tinggi (Luar Kotak)': 'Tinggi — sangat kreatif, luar kotak, gunakan analogi dan metafora menarik'
+    };
+
+    // Default pedagogi list — overridable from Google Sheet (column: "Nama")
+    let PEDAGOGI_LIST = [
+      'Umum',
+      'Model 5E',
+      'PBL (Project-Based Learning)',
+      'Flipped Classroom',
+      'Inquiry-Based Learning',
+      'Game-Based Learning (GBL)',
+      'Differentiated Learning',
+      'STEM Integration',
+      'Thinking Maps (i-THINK)',
+      'HOTS Framework (KBAT)',
+      'Constructivism'
+    ];
+
+    // Default format list — overridable from Google Sheet (columns: "Label", "Deskripsi")
+    let FORMAT_LIST = [
+      'Teks Berstruktur',
+      'Jadual Markdown',
+      'Format CSV',
+      'Peta Minda',
+      'Template RPH KPM',
+      'Format Kertas Soalan SPM',
+      'Format Minit Mesyuarat',
+      'Slide Outline',
+      'JSON'
+    ];
+
+    // Descriptive mappings for richer prompts
+    const FORMAT_DESC = {
+      'Teks Berstruktur': 'Teks berstruktur dengan perenggan yang teratur dan bullet points',
+      'Jadual Markdown': 'Jadual Markdown yang mudah dibaca dengan header yang jelas',
+      'Format CSV': 'Data mentah dalam format CSV (dipisahkan dengan koma), sesuai untuk import ke spreadsheet',
+      'Peta Minda': 'Rangka peta minda berhierarki dalam format teks berindent',
+      'Template RPH KPM': 'Mengikut template rasmi RPH KPM — Standard Kandungan, Standard Pembelajaran, Objektif, Aktiviti Pdpc, BBM, Refleksi',
+      'Format Kertas Soalan SPM': 'Format kertas soalan SPM rasmi dengan arahan, peruntukan markah, dan masa',
+      'Format Minit Mesyuarat': 'Format minit mesyuarat rasmi KPM/JPN — Perkara, Perbincangan, Keputusan/Tindakan, PIC, Tarikh Target',
+      'Slide Outline': 'Outline slide deck — satu konsep utama per slide dengan bullet points ringkas',
+      'JSON': 'Format JSON yang valid untuk kegunaan pembangun/developer'
+    };
+
+    const BAHASA_DESC = {
+      'BM': 'Gunakan Bahasa Melayu profesional sepenuhnya, selaras dengan standard Dewan Bahasa dan Pustaka serta konteks pendidikan Malaysia.',
+      'BI': 'Use professional English throughout, aligned with Malaysian education context and MOE terminology.',
+      'Dwibahasa': 'Sediakan dalam dwibahasa: Bahasa Melayu sebagai teks utama, dengan terjemahan Bahasa Inggeris di bawah setiap bahagian utama (atau dalam kurungan untuk istilah teknikal).'
+    };
+
+    // ============ IMAGE GENERATION DATA ============
+    const IMAGE_STYLES = [
+      { id: 'Photorealistic', label: 'Fotorealistik', emoji: '📸', kw: 'photorealistic, highly detailed, sharp focus, professional DSLR photography, realistic textures, natural depth of field' },
+      { id: 'Illustration', label: 'Ilustrasi Digital', emoji: '🎨', kw: 'professional digital illustration, clean vector lines, polished artwork, editorial illustration style' },
+      { id: 'Cartoon', label: 'Kartun Ceria', emoji: '✏️', kw: 'friendly cartoon style, bold outlines, vibrant flat colors, expressive characters, Saturday morning cartoon aesthetic' },
+      { id: 'Watercolor', label: 'Cat Air', emoji: '🖌️', kw: 'watercolor painting, soft color gradients, artistic brush strokes, paper texture visible, loose artistic style' },
+      { id: 'Pencil Sketch', label: 'Lakaran Pensel', emoji: '✒️', kw: 'graphite pencil sketch, hand-drawn, cross-hatching, artistic shading, sketchbook aesthetic, monochrome' },
+      { id: '3D Render', label: '3D Render', emoji: '🎲', kw: '3D rendered, octane render quality, ray-traced lighting, subsurface scattering, cinematic 3D animation style' },
+      { id: 'Flat Design', label: 'Flat / Vektor', emoji: '🟦', kw: 'flat design illustration, geometric vector shapes, minimalist, modern corporate infographic style, bold colors' },
+      { id: 'Anime', label: 'Anime', emoji: '🌸', kw: 'anime style illustration, cel-shaded, Japanese animation aesthetic, expressive large eyes, clean line art' },
+      { id: 'Ghibli', label: 'Studio Ghibli', emoji: '🏞️', kw: 'Studio Ghibli inspired animation, whimsical hand-painted backgrounds, nostalgic atmosphere, Miyazaki-style character design' },
+      { id: 'Children Book', label: 'Buku Kanak-Kanak', emoji: '📚', kw: "children's storybook illustration, whimsical and friendly, soft textures, warm storybook colors, approachable character design" },
+      { id: 'Educational', label: 'Diagram Pendidikan', emoji: '📊', kw: 'educational scientific diagram, clearly labeled components, textbook illustration style, clean annotations, encyclopedia quality' },
+      { id: 'Oil Painting', label: 'Lukisan Minyak', emoji: '🖼️', kw: 'classical oil painting, rich textures, impasto brush strokes, Renaissance-inspired, museum quality artwork' }
+    ];
+
+    const ASPECT_RATIOS = [
+      { id: '1:1', label: '1:1', desc: 'Square · Post IG' },
+      { id: '16:9', label: '16:9', desc: 'Slide · YouTube' },
+      { id: '9:16', label: '9:16', desc: 'Stories · Mobile' },
+      { id: '4:3', label: '4:3', desc: 'Slide Klasik' },
+      { id: '3:2', label: '3:2', desc: 'Foto Standard' }
+    ];
+
+    const COMPOSITIONS = {
+      'Umum (AI Pilih)': '',
+      'Close-up (Dekat)': 'close-up shot, tight framing focusing on subject details',
+      'Medium Shot (Separuh Badan)': 'medium shot, waist-up framing',
+      'Wide Shot (Jarak Jauh)': 'wide shot, full scene visible with environmental context',
+      "Bird's Eye View (Atas)": "bird's eye view, top-down perspective looking down",
+      'Eye Level (Sisi)': 'eye-level perspective, natural viewpoint',
+      'Low Angle (Bawah)': 'low angle shot, looking up at subject for heroic effect',
+      'Centered (Berpusat)': 'perfectly centered composition, symmetrical framing',
+      'Rule of Thirds': 'rule of thirds composition, subject placed along intersection points'
+    };
+
+    const LIGHTINGS = {
+      'Umum (AI Pilih)': '',
+      'Cahaya Semula Jadi': 'natural daylight, soft and even illumination',
+      'Cahaya Keemasan (Golden Hour)': 'golden hour lighting, warm orange sunset tones, long soft shadows',
+      'Cahaya Studio': 'professional studio lighting, softbox illumination, clean highlights',
+      'Cahaya Lembut': 'soft diffused lighting, gentle shadows, flattering illumination',
+      'Cahaya Dramatik': 'dramatic chiaroscuro lighting, strong contrast, deep shadows',
+      'Cahaya Belakang (Backlit)': 'backlit with rim lighting, glowing silhouette effect',
+      'Cahaya Pagi': 'fresh morning sunlight streaming through windows',
+      'Cahaya Kelas (Fluorescent)': 'even classroom fluorescent lighting, bright and neutral',
+      'Cahaya Sinematik': 'cinematic lighting, movie-quality mood lighting'
+    };
+
+    const COLOR_PALETTES = {
+      'Umum (AI Pilih)': '',
+      'Warna Terang (Vibrant)': 'vibrant saturated colors, bold and lively palette',
+      'Warna Lembut (Muted)': 'muted desaturated tones, soft understated palette',
+      'Pastel': 'soft pastel color palette, dreamy gentle hues',
+      'Monokrom': 'monochromatic black and white, grayscale only',
+      'Warna Bumi': 'earth tones, browns greens and ochres, natural palette',
+      'Sepia': 'sepia-toned, vintage warm brown hues',
+      'Warna Malaysia': 'Malaysian national colors — red, white, blue, and yellow harmoniously combined',
+      'Warna Utama (Primary)': 'bold primary colors — red, blue, yellow — perfect for young children',
+      'Nada Sejuk': 'cool blue and green tones, calming palette',
+      'Nada Panas': 'warm red, orange, and yellow tones, energetic palette',
+      'Emerald & Gold (JPNK)': 'emerald green and gold color scheme, sophisticated institutional palette'
+    };
+
+    const IMAGE_MOODS = {
+      'Umum (AI Pilih)': '',
+      'Ceria': 'cheerful and joyful mood, uplifting atmosphere',
+      'Serius': 'serious and formal mood, professional tone',
+      'Tenang': 'calm and peaceful mood, serene atmosphere',
+      'Bersemangat': 'energetic and dynamic mood, motivational vibe',
+      'Memberi Inspirasi': 'inspirational and aspirational mood, hopeful feel',
+      'Menyeronokkan': 'playful and fun mood, entertaining vibe',
+      'Fokus': 'focused and concentrated mood, studious atmosphere',
+      'Profesional': 'professional corporate mood, polished and refined'
+    };
+
+    const SETTINGS = {
+      'Umum (AI Pilih)': '',
+      'Kelas / Classroom': 'modern Malaysian classroom setting with whiteboards, desks, and educational posters',
+      'Makmal Sains': 'Malaysian school science laboratory with lab benches, beakers, and safety equipment',
+      'Makmal Komputer': 'computer lab with rows of desktop computers, students working',
+      'Perpustakaan': 'school library with bookshelves, reading tables, quiet atmosphere',
+      'Kawasan Sekolah': 'Malaysian school compound, typical school building architecture',
+      'Dewan Perhimpunan': 'school assembly hall, stage visible, rows of chairs',
+      'Padang Sekolah': 'school sports field, green grass, sports facilities',
+      'Pejabat Pentadbiran': 'administrative school office, professional setting',
+      'Alam Semula Jadi': 'outdoor natural environment, trees, landscape',
+      'Bandar Kedah': 'Kedah urban environment, mosque and town architecture visible',
+      'Latar Tradisional Melayu': 'traditional Malay architectural setting, kampung aesthetic',
+      'Latar Neutral/Studio': 'plain neutral studio background, no distractions'
+    };
+
+    const CULTURAL_CONTEXTS = {
+      'Malaysia (Pelbagai Kaum)': 'Malaysian multiracial context — students of Malay, Chinese, and Indian descent together, wearing standard Malaysian school uniforms (baju kurung for Malay/Muslim girls with tudung/hijab, dress for non-Muslim girls, white shirt and dark trousers for boys)',
+      'Mesra Muslim': 'modest Muslim-appropriate dressing, all female subjects wearing hijab/tudung and covered clothing (baju kurung), males in modest attire, respectful of Islamic values',
+      'Universal / Tanpa Konteks': 'universal context, no specific cultural markers',
+      'Khusus Melayu': 'Malay Malaysian context, traditional or modern Malay dress',
+      'Khusus Cina': 'Chinese Malaysian context',
+      'Khusus India': 'Indian Malaysian context',
+      'Orang Asal / Bumiputera': 'indigenous Malaysian context, Orang Asal cultural elements'
+    };
+
+    // ============ i18n ============
+    const I18N = {
+      ms: {
+        brandDept: 'JPNK · Kedah Darul Aman',
+        brandUnit: 'Sektor Pembelajaran',
+        badge: 'Dasar Pendidikan Digital',
+        subtitle: 'Platform Penjanaan Arahan Lanjutan (Prompt Engineering) untuk Penguasaan AI Generatif dalam Ekosistem Pendidikan.',
+        history: 'Sejarah',
+        myTemplates: 'Template Saya:',
+        configTitle: 'Konfigurasi Arahan',
+        randomEx: 'Contoh',
+        lblBidang: 'Kategori Bidang',
+        selectBidang: 'Pilih Bidang',
+        lblSubjek: 'Fokus / Mata Pelajaran',
+        selectSubjek: 'Pilih Mata Pelajaran',
+        selectBidangFirst: 'Pilih Bidang dahulu',
+        other: 'Lain-lain / Nyatakan',
+        otherPlaceholder: 'Nyatakan mata pelajaran...',
+        lblPersona: 'Persona Sistem AI',
+        lblTopik: 'Konteks Utama / Topik',
+        topikPlaceholder: 'Cth: Haba dan Pemindahan Haba, Sudut Peperiksaan SPM...',
+        lblRujukan: 'Suntikan Standard / Rujukan',
+        optional: 'Pilihan',
+        rujukanPlaceholder: 'Tampal kod DSKP, standard pembelajaran, atau petikan rujukan di sini...',
+        rujukanHelper: 'Cth: BS 5.1.1 — Membezakan haba dan suhu.',
+        lblTahap: 'Tahap Pelajar / Sasaran',
+        lblObjektif: 'Objektif Tugasan AI',
+        lblQuantity: 'Bilangan Output',
+        lblPedagogi: 'Kerangka Pendekatan / Pedagogi',
+        lblKreativiti: 'Aras Kreativiti',
+        lblFormat: 'Format Ekstrak',
+        lblBahasa: 'Bahasa Output',
+        cotTitle: 'Gunakan Logik Analisis Langkah-demi-Langkah',
+        cotHelper: 'Chain-of-Thought (C.o.T) — AI akan menaakul sebelum menjawab untuk output lebih tepat.',
+        vibeLabel: 'Vibe Control',
+        vibeHelper: 'Estetika Slide Deck',
+        btnGenerate: 'JANA ARAHAN SISTEM',
+        btnSaveTemplate: 'Simpan Template',
+        kbdHelper: 'Tekan <kbd>Ctrl</kbd> + <kbd>Enter</kbd> untuk jana arahan pantas',
+        outputTitle: 'Arahan Terhasil',
+        outputSubtitle: 'Struktur XML · Prompt Engineering',
+        btnCopy: 'Salin',
+        outputPlaceholder: "Klik 'JANA ARAHAN SISTEM' untuk menghasilkan prompt terstruktur di sini...\n\nOutput akan disusun dalam format XML standard industri untuk keputusan AI yang paling tepat.",
+        stMode: 'Mode', stPersona: 'Persona',
+        words: 'Perkataan', chars: 'Aksara',
+        tipText: '<strong>Tips:</strong> Tampal arahan ini ke dalam Gemini atau NotebookLM. Semakin lengkap input anda, semakin berkualiti output AI.',
+        footerDev: 'Dibangunkan Oleh:',
+        footerOrg: 'Unit Teknologi Maklumat dan Komunikasi, Jabatan Pendidikan Negeri Kedah',
+        qrTitle: 'Kongsi via QR Code',
+        qrHelper: 'Scan untuk buka arahan dalam peranti lain',
+        btnClose: 'Tutup', btnDownloadQR: 'Muat Turun QR',
+        historyTitle: 'Sejarah Arahan',
+        historyHelper: '5 arahan terakhir anda tersimpan di peranti ini.',
+        generated: 'dijana',
+        copied: 'disalin ke clipboard',
+        noOutput: 'Tiada arahan untuk',
+        resetConfirm: 'Set semula semua input?',
+        resetDone: 'Form di-reset',
+        templateSaved: 'Template disimpan',
+        templateLoaded: 'Template dimuatkan',
+        templateName: 'Nama template:',
+        templateDelete: 'Padam template ini?',
+        fillRequired: 'Sila lengkapkan:',
+        historyEmpty: 'Tiada sejarah lagi. Jana arahan pertama anda!'
+      },
+      en: {
+        brandDept: 'JPNK · Kedah Darul Aman',
+        brandUnit: 'Sektor Pembelajaran',
+        badge: 'Digital Education Policy',
+        subtitle: 'Advanced Prompt Engineering Platform for Mastering Generative AI in the Education Ecosystem.',
+        history: 'History',
+        myTemplates: 'My Templates:',
+        configTitle: 'Prompt Configuration',
+        randomEx: 'Example',
+        lblBidang: 'Field Category',
+        selectBidang: 'Select Field',
+        lblSubjek: 'Focus / Subject',
+        selectSubjek: 'Select Subject',
+        selectBidangFirst: 'Select Field first',
+        other: 'Other / Specify',
+        otherPlaceholder: 'Specify subject...',
+        lblPersona: 'AI System Persona',
+        lblTopik: 'Main Context / Topic',
+        topikPlaceholder: 'e.g.: Heat and Heat Transfer, SPM Exam Corner...',
+        lblRujukan: 'Standards / References Injection',
+        optional: 'Optional',
+        rujukanPlaceholder: 'Paste DSKP codes, learning standards, or reference passages here...',
+        rujukanHelper: 'e.g.: BS 5.1.1 — Distinguish heat and temperature.',
+        lblTahap: 'Target Learner Level',
+        lblObjektif: 'AI Task Objective',
+        lblQuantity: 'Output Quantity',
+        lblPedagogi: 'Pedagogical Framework',
+        lblKreativiti: 'Creativity Level',
+        lblFormat: 'Output Format',
+        lblBahasa: 'Output Language',
+        cotTitle: 'Use Step-by-Step Analytical Logic',
+        cotHelper: 'Chain-of-Thought (C.o.T) — AI will reason before responding for more accurate output.',
+        vibeLabel: 'Vibe Control',
+        vibeHelper: 'Slide Deck Aesthetic',
+        btnGenerate: 'GENERATE SYSTEM PROMPT',
+        btnSaveTemplate: 'Save Template',
+        kbdHelper: 'Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> for quick generation',
+        outputTitle: 'Generated Prompt',
+        outputSubtitle: 'XML Structure · Prompt Engineering',
+        btnCopy: 'Copy',
+        outputPlaceholder: "Click 'GENERATE SYSTEM PROMPT' to produce a structured prompt here...\n\nOutput will be formatted in industry-standard XML for the most accurate AI results.",
+        stMode: 'Mode', stPersona: 'Persona',
+        words: 'Words', chars: 'Chars',
+        tipText: '<strong>Tip:</strong> Paste this prompt into Gemini or NotebookLM. The more detailed your input, the better the AI output.',
+        footerDev: 'Developed By:',
+        footerOrg: 'Unit Teknologi Maklumat dan Komunikasi, Jabatan Pendidikan Negeri Kedah',
+        qrTitle: 'Share via QR Code',
+        qrHelper: 'Scan to open prompt on another device',
+        btnClose: 'Close', btnDownloadQR: 'Download QR',
+        historyTitle: 'Prompt History',
+        historyHelper: 'Your last 5 prompts saved on this device.',
+        generated: 'generated',
+        copied: 'copied to clipboard',
+        noOutput: 'No prompt to',
+        resetConfirm: 'Reset all inputs?',
+        resetDone: 'Form reset',
+        templateSaved: 'Template saved',
+        templateLoaded: 'Template loaded',
+        templateName: 'Template name:',
+        templateDelete: 'Delete this template?',
+        fillRequired: 'Please complete:',
+        historyEmpty: 'No history yet. Generate your first prompt!'
+      }
+    };
+
+    // ============ STATE ============
+    let state = {
+      mode: 'gemini',
+      persona: 'Guru Pakar',
+      vibe: null,
+      bahasa: 'BM',
+      lang: 'ms',
+      theme: 'light'
+    };
+
+    // ============ DOM HELPERS ============
+    const $ = (id) => document.getElementById(id);
+    const t = (key) => I18N[state.lang][key] || key;
+
+    // ============ INIT BIDANG ============
+    function initBidang() {
+      const bidangEl = $('bidang');
+      bidangEl.innerHTML = `<option value="">-- ${t('selectBidang')} --</option>` +
+        BIDANG_LIST.map(b => `<option value="${b.v}">${b.l}</option>`).join('');
+    }
+
+    function initPedagogi() {
+      const el = $('pedagogi');
+      if (!el) return;
+      const current = el.value;
+      el.innerHTML = PEDAGOGI_LIST.map(v => `<option value="${v}">${v}</option>`).join('');
+      if (current && PEDAGOGI_LIST.includes(current)) el.value = current;
+    }
+
+    function initFormat() {
+      const el = $('format');
+      if (!el) return;
+      const current = el.value;
+      el.innerHTML = FORMAT_LIST.map(v => `<option value="${v}">${v}</option>`).join('');
+      if (current && FORMAT_LIST.includes(current)) el.value = current;
+    }
+
+    // ============ PERSONA CHIPS ============
+    function initPersonas() {
+      const el = $('personaChips');
+      el.innerHTML = PERSONAS.map(p => `
+        <button data-persona="${p.id}" class="md3-chip ${p.default ? 'active' : ''} rounded-full px-4 py-2 text-sm inline-flex items-center gap-1.5">
+          <svg class="chip-check w-4 h-4" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+          ${p.id}
+        </button>
+      `).join('');
+      el.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          el.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.persona = btn.dataset.persona;
+          $('statusPersona').textContent = state.persona;
+        });
+      });
+    }
+
+    // ============ VIBE GRID ============
+    function initVibes() {
+      $('vibeGrid').innerHTML = VIBES.map(v => `
+        <button data-vibe="${v.id}" class="md3-vibe rounded-2xl p-3 text-left relative">
+          <div class="text-2xl mb-1">${v.emoji}</div>
+          <div class="font-bold text-sm">${v.label}</div>
+          <div class="text-[0.7rem] mt-0.5 leading-snug" style="color: var(--md-on-surface-muted);">${v.desc}</div>
+        </button>
+      `).join('');
+      $('vibeGrid').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const already = btn.classList.contains('active');
+          $('vibeGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          if (!already) {
+            btn.classList.add('active');
+            state.vibe = btn.dataset.vibe;
+          } else {
+            state.vibe = null;
+          }
+        });
+      });
+    }
+
+    // ============ BAHASA CHIPS ============
+    function initBahasa() {
+      $('bahasaOutput').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('bahasaOutput').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.bahasa = btn.dataset.bahasa;
+        });
+      });
+    }
+
+    // ============ IMAGE FORM INIT ============
+    function initImageForm() {
+      // Style grid
+      $('imgStyleGrid').innerHTML = IMAGE_STYLES.map((s, i) => `
+        <button data-style="${s.id}" class="md3-vibe rounded-xl p-2.5 text-left relative ${i === 0 ? 'active' : ''}">
+          <div class="text-xl mb-0.5">${s.emoji}</div>
+          <div class="font-bold text-xs">${s.label}</div>
+        </button>
+      `).join('');
+      $('imgStyleGrid').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('imgStyleGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.imgStyle = btn.dataset.style;
+        });
+      });
+      state.imgStyle = IMAGE_STYLES[0].id;
+
+      // Aspect ratio
+      $('imgAspectGrid').innerHTML = ASPECT_RATIOS.map((a, i) => `
+        <button data-aspect="${a.id}" class="md3-chip ${a.id === '16:9' ? 'active' : ''} rounded-xl px-2 py-2 text-center">
+          <div class="font-bold text-sm">${a.label}</div>
+          <div class="text-[0.65rem] mt-0.5" style="color: var(--md-on-surface-muted);">${a.desc}</div>
+        </button>
+      `).join('');
+      $('imgAspectGrid').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('imgAspectGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.imgAspect = btn.dataset.aspect;
+        });
+      });
+      state.imgAspect = '16:9';
+
+      // Populate dropdowns
+      const fillSelect = (id, data, defaultKey) => {
+        $(id).innerHTML = Object.keys(data).map(k => `<option value="${k}"${k === defaultKey ? ' selected' : ''}>${k}</option>`).join('');
+      };
+      fillSelect('imgSetting', SETTINGS, 'Kelas / Classroom');
+      fillSelect('imgCulture', CULTURAL_CONTEXTS, 'Malaysia (Pelbagai Kaum)');
+      fillSelect('imgLighting', LIGHTINGS, 'Cahaya Semula Jadi');
+      fillSelect('imgPalette', COLOR_PALETTES, 'Warna Terang (Vibrant)');
+      fillSelect('imgMood', IMAGE_MOODS, 'Ceria');
+      fillSelect('imgComposition', COMPOSITIONS, 'Medium Shot (Separuh Badan)');
+
+      // Quality chips
+      $('imgQualityGrid').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('imgQualityGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.imgQuality = btn.dataset.quality;
+        });
+      });
+      state.imgQuality = 'High Quality';
+    }
+
+    // ============ BUILD IMAGE PROMPT ============
+    function buildImagePrompt() {
+      const subject = $('imgSubject').value.trim();
+      if (!subject) return null;
+
+      const styleObj = IMAGE_STYLES.find(s => s.id === state.imgStyle) || IMAGE_STYLES[0];
+      const setting = SETTINGS[$('imgSetting').value] || '';
+      const culture = CULTURAL_CONTEXTS[$('imgCulture').value] || '';
+      const lighting = LIGHTINGS[$('imgLighting').value] || '';
+      const palette = COLOR_PALETTES[$('imgPalette').value] || '';
+      const mood = IMAGE_MOODS[$('imgMood').value] || '';
+      const composition = COMPOSITIONS[$('imgComposition').value] || '';
+      const extras = $('imgExtras').value.trim();
+      const styleRef = $('imgStyleRef').value.trim();
+      const userAvoid = $('imgAvoid').value.trim();
+      const quality = state.imgQuality || 'High Quality';
+      const aspect = state.imgAspect || '16:9';
+
+      // Quality descriptors
+      const qualityDesc = {
+        'Standard': 'good quality',
+        'High Quality': 'high quality, detailed, professional',
+        'Ultra HD': 'ultra high definition 4K, hyper-detailed, masterpiece quality, award-winning'
+      }[quality];
+
+      // Build the prompt as natural paragraph (best format for Gemini Imagen)
+      const parts = [];
+      parts.push(styleObj.kw);
+      if (composition) parts.push(composition);
+      parts.push(`subject: ${subject}`);
+      if (setting) parts.push(`setting: ${setting}`);
+      if (culture) parts.push(culture);
+      if (lighting) parts.push(lighting);
+      if (palette) parts.push(palette);
+      if (mood) parts.push(mood);
+      if (extras) parts.push(`additional details: ${extras}`);
+      if (styleRef) parts.push(`artistic reference: ${styleRef}`);
+      parts.push(qualityDesc);
+
+      const mainPrompt = parts.filter(Boolean).join('. ');
+
+      // Default negative prompts + user additions
+      const defaultNeg = 'no text artifacts, no distorted faces, no extra limbs, no watermarks, no blurry areas';
+      const negativePrompt = userAvoid
+        ? `${defaultNeg}, ${userAvoid}`
+        : defaultNeg;
+
+      // Final structured output
+      return `🎨 GEMINI IMAGE GENERATION PROMPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 DESCRIPTION:
+${mainPrompt}.
+
+📐 ASPECT RATIO: ${aspect}
+
+❌ AVOID: ${negativePrompt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CARA GUNA:
+1. Salin keseluruhan prompt di atas
+2. Buka Gemini (gemini.google.com)
+3. Tampal prompt dan tekan butang "Generate image" (🖼️)
+4. Tunggu Gemini jana imej mengikut spesifikasi`;
+    }
+
+    // ============ MODE SWITCHING ============
+    function setMode(mode) {
+      state.mode = mode;
+      ['modeGemini', 'modeNotebook', 'modePentadbir', 'modeImej'].forEach(id => $(id).classList.remove('active'));
+      const map = { gemini: 'modeGemini', notebooklm: 'modeNotebook', pentadbir: 'modePentadbir', imej: 'modeImej' };
+      $(map[mode]).classList.add('active');
+
+      // Toggle text form vs image form
+      const isImej = (mode === 'imej');
+      $('textForm').style.display = isImej ? 'none' : '';
+      $('imageForm').style.display = isImej ? '' : 'none';
+
+      // Update section title
+      $('configTitle').textContent = isImej ? 'Konfigurasi Imej' : (I18N[state.lang].configTitle);
+
+      // Update Generate button label
+      const btnLabel = $('generateBtn').querySelector('[data-i18n="btnGenerate"]');
+      if (btnLabel) {
+        btnLabel.textContent = isImej ? 'JANA PROMPT IMEJ' : I18N[state.lang].btnGenerate;
+      }
+
+      // Update status mode label
+      const modeLabels = { gemini: 'Gemini', notebooklm: 'NotebookLM', pentadbir: 'Pentadbir', imej: 'Imej Gemini' };
+      $('statusMode').textContent = modeLabels[mode];
+
+      // For text modes only: update objectives & pedagogy visibility
+      if (!isImej) {
+        const opts = OBJECTIVES[mode];
+        $('objektif').innerHTML = opts.map(o => `<option value="${o}">${o}</option>`).join('');
+        $('pedagogiWrap').style.display = (mode === 'gemini') ? '' : 'none';
+        updateVibeVisibility();
+        updateQuantityVisibility();
+        toggleObjektifLain();
+      }
+
+      // Status chip visibility for image mode
+      const persEl = document.querySelector('#statusBar span:nth-child(2)');
+      const cotEl = $('statusCoT');
+      if (isImej) {
+        if (persEl) persEl.style.display = 'none';
+        if (cotEl) cotEl.style.display = 'none';
+      } else {
+        if (persEl) persEl.style.display = '';
+        if (cotEl) cotEl.style.display = $('cot').checked ? '' : 'none';
+      }
+    }
+
+    function updateVibeVisibility() {
+      const show = (state.mode === 'notebooklm' && $('objektif').value === 'Formatkan Slide Deck');
+      $('vibeWrap').style.display = show ? '' : 'none';
+    }
+
+    function updateQuantityVisibility() {
+      const obj = $('objektif').value;
+      const config = QUANTITY_OBJECTIVES[obj];
+      if (config) {
+        $('quantityWrap').style.display = '';
+        const qEl = $('quantity');
+        qEl.max = config.max;
+        if (qEl.value > config.max) qEl.value = config.default;
+        $('quantityValue').textContent = qEl.value;
+      } else {
+        $('quantityWrap').style.display = 'none';
+      }
+    }
+
+    function toggleObjektifLain() {
+      const isLain = $('objektif').value === '✍️ Lain-lain / Nyatakan Sendiri';
+      $('objektifLainWrap').style.display = isLain ? '' : 'none';
+      if (isLain) setTimeout(() => $('objektifLain').focus(), 100);
+    }
+
+    function getObjektif() {
+      const val = $('objektif').value;
+      if (val === '✍️ Lain-lain / Nyatakan Sendiri') {
+        return $('objektifLain').value.trim() || '[Objektif kustom tidak dinyatakan]';
+      }
+      return val;
+    }
+
+    // ============ SUBJECT CASCADE ============
+    function onBidangChange() {
+      const b = $('bidang').value;
+      const sEl = $('subjek');
+      if (!b) {
+        sEl.innerHTML = `<option value="">-- ${t('selectBidangFirst')} --</option>`;
+        sEl.disabled = true;
+        $('subjekLainWrap').style.display = 'none';
+        return;
+      }
+      const subs = SUBJECTS[b] || [];
+      sEl.innerHTML = `<option value="">-- ${t('selectSubjek')} --</option>` +
+        subs.map(s => `<option value="${s}">${s}</option>`).join('') +
+        `<option value="__LAIN__">${t('other')}</option>`;
+      sEl.disabled = false;
+      $('subjekLainWrap').style.display = 'none';
+    }
+
+    // ============ PROMPT ALCHEMY ENGINE ============
+    function getSubjek() {
+      if ($('subjek').value === '__LAIN__') {
+        return $('subjekLain').value.trim() || '[Subjek Kustom]';
+      }
+      return $('subjek').value || '[Belum dipilih]';
+    }
+
+    function buildPrompt() {
+      const bidang = $('bidang').value || '[Belum dipilih]';
+      const subjek = getSubjek();
+      const personaId = state.persona;
+      const personaObj = PERSONAS.find(p => p.id === personaId) || PERSONAS[0];
+      const personaDesc = personaObj.desc || personaId;
+      const topik = $('topik').value.trim() || '[Topik tidak dinyatakan]';
+      const rujukan = $('rujukan').value.trim();
+      const tahap = $('tahap').value;
+      const tugasan = getObjektif();
+      const pedagogi = $('pedagogi').value;
+      const kreativiti = $('kreativiti').value;
+      const kreativitiDesc = KREATIVITI_DESC[kreativiti] || kreativiti;
+      const format = $('format').value;
+      const formatDesc = FORMAT_DESC[format] || format;
+      const useCoT = $('cot').checked;
+      const bahasa = state.bahasa;
+      const bahasaDesc = BAHASA_DESC[bahasa] || BAHASA_DESC['BM'];
+      const qty = QUANTITY_OBJECTIVES[tugasan] ? $('quantity').value : null;
+      const vibeObj = state.vibe ? VIBES.find(v => v.id === state.vibe) : null;
+
+      // Build mission
+      let mission = tugasan;
+      if (qty) {
+        const label = QUANTITY_OBJECTIVES[tugasan].label.toLowerCase();
+        mission = `${tugasan} (${qty} ${label})`;
+      }
+      if (state.mode === 'gemini' && pedagogi && pedagogi !== 'Umum') {
+        mission += ` — diselaraskan mengikut kerangka pedagogi ${pedagogi}`;
+      }
+      if (state.mode === 'notebooklm' && tugasan === 'Formatkan Slide Deck' && vibeObj) {
+        mission += `.\nEstetika Visual (WAJIB): Formatkan cadangan rekaan slaid mengikut kod estetika ini: ${vibeObj.keywords}`;
+      }
+
+      // Tahap context
+      let tahapLine = '';
+      if (tahap && tahap !== 'Umum') {
+        tahapLine = `\nSasaran Pembaca/Pelajar: ${tahap}. Laras bahasa dan tahap kesukaran perlu sesuai dengan tahap ini.`;
+      }
+
+      // Mode-specific execution hint
+      let missionIntro;
+      if (state.mode === 'gemini') {
+        missionIntro = `Misi Utama: Jalankan tugasan "${mission}".`;
+      } else if (state.mode === 'notebooklm') {
+        missionIntro = `Misi Utama: Analisis sumber/dokumen yang dimuat naik, kemudian laksanakan pengekstrakan "${mission}".`;
+      } else {
+        missionIntro = `Misi Utama: Sebagai dokumen pentadbiran rasmi, hasilkan "${mission}" yang mematuhi piawaian KPM/JPN.`;
+      }
+
+      // CoT line
+      const cotLine = useCoT
+        ? 'Anda diwajibkan menjana analisis langkah-demi-langkah (Chain-of-Thought reasoning) bagi membuktikan logik anda SEBELUM memberikan hasil akhir. Fikirkan secara sistematik.'
+        : 'Terus jana output akhir tanpa memaparkan proses penaakulan.';
+
+      const blocks = [];
+
+      blocks.push(
+`<ROLE>
+Anda bertindak sebagai ${personaId} — iaitu ${personaDesc}, di Malaysia.
+Kepakaran anda: ${bidang} (Khusus: ${subjek}).${tahapLine}
+</ROLE>`
+      );
+
+      if (rujukan) {
+        blocks.push(
+`<REFERENCE_DATA>
+Berikan keutamaan mutlak kepada standard/rujukan berikut dalam jawapan anda:
+"""
+${rujukan}
+"""
+</REFERENCE_DATA>`
+        );
+      }
+
+      blocks.push(
+`<TASK_DEFINITION>
+Fokus/Topik: ${topik}
+${missionIntro}
+</TASK_DEFINITION>`
+      );
+
+      blocks.push(
+`<CONSTRAINTS_AND_RULES>
+1. Aras Kreativiti Output: ${kreativitiDesc}.
+2. Format Persembahan: ${formatDesc}.
+3. Logik Pembuktian: ${cotLine}
+4. Kualiti Bahasa: ${bahasaDesc}
+</CONSTRAINTS_AND_RULES>`
+      );
+
+      blocks.push(
+`<EXECUTION>
+Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
+</EXECUTION>`
+      );
+
+      return blocks.join('\n\n');
+    }
+
+    // ============ GENERATE ============
+    function doGenerate() {
+      // Branch: Image mode has completely different validation & output
+      if (state.mode === 'imej') {
+        const subject = $('imgSubject').value.trim();
+        if (!subject) {
+          showToast('⚠️ Sila isi Subjek Utama Imej');
+          $('imgSubject').focus();
+          return;
+        }
+        const prompt = buildImagePrompt();
+        $('output').value = prompt;
+        updateCounter();
+        saveToHistory(prompt);
+        if (window.innerWidth < 1024) {
+          $('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        showToast('🎨 Prompt imej dijana!');
+        return;
+      }
+
+      // Text modes validation
+      const missing = [];
+      if (!$('bidang').value) missing.push(t('lblBidang'));
+      if (!$('subjek').value) missing.push(t('lblSubjek'));
+      if ($('subjek').value === '__LAIN__' && !$('subjekLain').value.trim()) missing.push(t('lblSubjek'));
+      if (!$('topik').value.trim()) missing.push(t('lblTopik'));
+      if ($('objektif').value === '✍️ Lain-lain / Nyatakan Sendiri' && !$('objektifLain').value.trim()) {
+        missing.push(t('lblObjektif') + ' (kustom)');
+      }
+
+      if (missing.length) {
+        showToast('⚠️ ' + t('fillRequired') + ' ' + missing.join(', '));
+        return;
+      }
+
+      const prompt = buildPrompt();
+      $('output').value = prompt;
+      updateCounter();
+
+      // Update tahap status badge
+      const tahapVal = $('tahap').value;
+      const tBadge = $('statusTahap');
+      if (tahapVal && tahapVal !== 'Umum') {
+        tBadge.textContent = tahapVal;
+        tBadge.style.display = '';
+      } else {
+        tBadge.style.display = 'none';
+      }
+
+      saveToHistory(prompt);
+
+      if (window.innerWidth < 1024) {
+        $('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      showToast(`✨ ${t('generated')}!`);
+    }
+
+    // ============ COUNTER ============
+    function updateCounter() {
+      const txt = $('output').value;
+      const words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+      const chars = txt.length;
+      const tokens = Math.ceil(chars / 4); // Rough estimate
+      $('wordCount').textContent = words.toLocaleString();
+      $('charCount').textContent = chars.toLocaleString();
+      $('tokenCount').textContent = tokens.toLocaleString();
+
+      // Context warning
+      const badge = $('contextBadge');
+      if (tokens > 0) {
+        badge.style.display = '';
+        if (tokens < 1000) {
+          badge.textContent = 'OK'; badge.className = 'px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium dark:bg-green-900/40 dark:text-green-300';
+        } else if (tokens < 4000) {
+          badge.textContent = 'Sederhana'; badge.className = 'px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium dark:bg-yellow-900/40 dark:text-yellow-300';
+        } else {
+          badge.textContent = 'Panjang'; badge.className = 'px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium dark:bg-red-900/40 dark:text-red-300';
+        }
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // ============ COPY ============
+    async function doCopy() {
+      const val = $('output').value.trim();
+      if (!val) { showToast('⚠️ ' + t('noOutput') + ' ' + t('btnCopy').toLowerCase()); return; }
+      try {
+        await navigator.clipboard.writeText(val);
+      } catch (e) {
+        $('output').select(); document.execCommand('copy');
+      }
+      $('copyLabel').textContent = '✓';
+      setTimeout(() => { $('copyLabel').textContent = t('btnCopy'); }, 1800);
+      showToast('📋 ' + t('copied'));
+    }
+
+    // ============ DOWNLOAD ============
+    function doDownload() {
+      const val = $('output').value.trim();
+      if (!val) { showToast('⚠️ ' + t('noOutput') + ' ' + 'muat turun'); return; }
+      const blob = new Blob([val], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const topik = $('topik').value.trim().replace(/[^a-z0-9]/gi, '_').slice(0, 30) || 'prompt';
+      a.href = url;
+      a.download = `pintarai_${topik}_${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('⬇️ Fail dimuat turun');
+    }
+
+    // ============ RESET ============
+    function doReset() {
+      if (!confirm(t('resetConfirm'))) return;
+      $('bidang').value = '';
+      $('subjek').innerHTML = `<option value="">-- ${t('selectBidangFirst')} --</option>`;
+      $('subjek').disabled = true;
+      $('subjekLain').value = '';
+      $('subjekLainWrap').style.display = 'none';
+      $('objektifLain').value = '';
+      $('objektifLainWrap').style.display = 'none';
+      $('topik').value = '';
+      $('rujukan').value = '';
+      $('tahap').value = 'Umum';
+      $('kreativiti').value = 'Sederhana';
+      $('format').value = 'Teks Berstruktur';
+      $('pedagogi').value = 'Umum';
+      $('cot').checked = true;
+      $('statusCoT').style.display = '';
+      $('statusTahap').style.display = 'none';
+      $('output').value = '';
+      updateCounter();
+      state.persona = 'Guru Pakar';
+      state.vibe = null;
+      state.bahasa = 'BM';
+      $('personaChips').querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', b.dataset.persona === 'Guru Pakar');
+      });
+      $('vibeGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      $('bahasaOutput').querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', b.dataset.bahasa === 'BM');
+      });
+      $('statusPersona').textContent = 'Guru Pakar';
+
+      // Reset image fields
+      $('imgSubject').value = '';
+      $('imgExtras').value = '';
+      $('imgStyleRef').value = '';
+      $('imgAvoid').value = '';
+      state.imgStyle = IMAGE_STYLES[0].id;
+      state.imgAspect = '16:9';
+      state.imgQuality = 'High Quality';
+      $('imgStyleGrid').querySelectorAll('button').forEach((b, i) => b.classList.toggle('active', i === 0));
+      $('imgAspectGrid').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.aspect === '16:9'));
+      $('imgQualityGrid').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.quality === 'High Quality'));
+      $('imgSetting').value = 'Kelas / Classroom';
+      $('imgCulture').value = 'Malaysia (Pelbagai Kaum)';
+      $('imgLighting').value = 'Cahaya Semula Jadi';
+      $('imgPalette').value = 'Warna Terang (Vibrant)';
+      $('imgMood').value = 'Ceria';
+      $('imgComposition').value = 'Medium Shot (Separuh Badan)';
+
+      setMode('gemini');
+      showToast('🔄 ' + t('resetDone'));
+    }
+
+    // ============ TEMPLATES (localStorage) ============
+    const LS_TEMPLATES = 'pintarai_templates_v2';
+    const LS_HISTORY = 'pintarai_history_v2';
+    const LS_THEME = 'pintarai_theme';
+    const LS_LANG = 'pintarai_lang';
+
+    function getTemplates() {
+      try { return JSON.parse(localStorage.getItem(LS_TEMPLATES) || '[]'); } catch { return []; }
+    }
+    function setTemplates(arr) {
+      localStorage.setItem(LS_TEMPLATES, JSON.stringify(arr));
+    }
+    function renderTemplates() {
+      const list = getTemplates();
+      const bar = $('templatesBar');
+      const listEl = $('templatesList');
+      if (!list.length) { bar.style.display = 'none'; return; }
+      bar.style.display = '';
+      listEl.innerHTML = list.map((tpl, i) => `
+        <div class="template-chip rounded-full pl-3 pr-1 py-1 text-xs font-semibold inline-flex items-center gap-1.5">
+          <button data-load="${i}" class="hover:underline">${escapeHtml(tpl.name)}</button>
+          <button data-delete="${i}" class="w-5 h-5 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-800 flex items-center justify-center" title="Padam">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      `).join('');
+      listEl.querySelectorAll('[data-load]').forEach(b => {
+        b.addEventListener('click', () => loadTemplate(parseInt(b.dataset.load)));
+      });
+      listEl.querySelectorAll('[data-delete]').forEach(b => {
+        b.addEventListener('click', () => deleteTemplate(parseInt(b.dataset.delete)));
+      });
+    }
+    function saveTemplate() {
+      if (!$('bidang').value || !$('topik').value.trim()) {
+        showToast('⚠️ Lengkapkan Bidang & Topik dahulu');
+        return;
+      }
+      const name = prompt(t('templateName'), $('topik').value.trim().slice(0, 30));
+      if (!name || !name.trim()) return;
+      const templates = getTemplates();
+      templates.unshift({
+        name: name.trim(),
+        saved: Date.now(),
+        data: captureState()
+      });
+      setTemplates(templates.slice(0, 20)); // Max 20 templates
+      renderTemplates();
+      showToast('💾 ' + t('templateSaved'));
+    }
+    function loadTemplate(idx) {
+      const tpl = getTemplates()[idx];
+      if (!tpl) return;
+      applyState(tpl.data);
+      showToast('✓ ' + t('templateLoaded') + ': ' + tpl.name);
+    }
+    function deleteTemplate(idx) {
+      if (!confirm(t('templateDelete'))) return;
+      const templates = getTemplates();
+      templates.splice(idx, 1);
+      setTemplates(templates);
+      renderTemplates();
+    }
+
+    function captureState() {
+      return {
+        mode: state.mode,
+        bidang: $('bidang').value,
+        subjek: $('subjek').value,
+        subjekLain: $('subjekLain').value,
+        persona: state.persona,
+        topik: $('topik').value,
+        rujukan: $('rujukan').value,
+        tahap: $('tahap').value,
+        objektif: $('objektif').value,
+        objektifLain: $('objektifLain').value,
+        pedagogi: $('pedagogi').value,
+        kreativiti: $('kreativiti').value,
+        format: $('format').value,
+        bahasa: state.bahasa,
+        cot: $('cot').checked,
+        vibe: state.vibe,
+        qty: $('quantity').value,
+        // Image mode fields
+        imgSubject: $('imgSubject').value,
+        imgStyle: state.imgStyle,
+        imgAspect: state.imgAspect,
+        imgSetting: $('imgSetting').value,
+        imgCulture: $('imgCulture').value,
+        imgLighting: $('imgLighting').value,
+        imgPalette: $('imgPalette').value,
+        imgMood: $('imgMood').value,
+        imgComposition: $('imgComposition').value,
+        imgExtras: $('imgExtras').value,
+        imgStyleRef: $('imgStyleRef').value,
+        imgAvoid: $('imgAvoid').value,
+        imgQuality: state.imgQuality
+      };
+    }
+    function applyState(d) {
+      setMode(d.mode || 'gemini');
+      $('bidang').value = d.bidang || '';
+      onBidangChange();
+      if (d.subjek) {
+        // Check if the subjek exists in the current bidang's options
+        const opt = Array.from($('subjek').options).find(o => o.value === d.subjek);
+        if (opt) {
+          $('subjek').value = d.subjek;
+        }
+      }
+      if (d.subjek === '__LAIN__') {
+        $('subjekLainWrap').style.display = '';
+        $('subjekLain').value = d.subjekLain || '';
+      }
+      state.persona = d.persona || 'Guru Pakar';
+      $('personaChips').querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', b.dataset.persona === state.persona);
+      });
+      $('statusPersona').textContent = state.persona;
+      $('topik').value = d.topik || '';
+      $('rujukan').value = d.rujukan || '';
+      $('tahap').value = d.tahap || 'Umum';
+      // Handle cross-mode objektif gracefully
+      if (d.objektif) {
+        const objOpt = Array.from($('objektif').options).find(o => o.value === d.objektif);
+        if (objOpt) $('objektif').value = d.objektif;
+      }
+      if (d.objektifLain) $('objektifLain').value = d.objektifLain;
+      toggleObjektifLain();
+      updateVibeVisibility();
+      updateQuantityVisibility();
+      if (d.qty) { $('quantity').value = d.qty; $('quantityValue').textContent = d.qty; }
+      $('pedagogi').value = d.pedagogi || 'Umum';
+      $('kreativiti').value = d.kreativiti || 'Sederhana';
+      $('format').value = d.format || 'Teks Berstruktur';
+      state.bahasa = d.bahasa || 'BM';
+      $('bahasaOutput').querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', b.dataset.bahasa === state.bahasa);
+      });
+      $('cot').checked = d.cot !== false;
+      $('statusCoT').style.display = $('cot').checked ? '' : 'none';
+      state.vibe = d.vibe || null;
+      $('vibeGrid').querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', b.dataset.vibe === state.vibe);
+      });
+      // Update tahap status badge
+      const tBadge = $('statusTahap');
+      if (d.tahap && d.tahap !== 'Umum') {
+        tBadge.textContent = d.tahap;
+        tBadge.style.display = '';
+      } else {
+        tBadge.style.display = 'none';
+      }
+
+      // Restore image mode fields if present
+      if (d.imgSubject !== undefined) $('imgSubject').value = d.imgSubject || '';
+      if (d.imgStyle) {
+        state.imgStyle = d.imgStyle;
+        $('imgStyleGrid').querySelectorAll('button').forEach(b => {
+          b.classList.toggle('active', b.dataset.style === d.imgStyle);
+        });
+      }
+      if (d.imgAspect) {
+        state.imgAspect = d.imgAspect;
+        $('imgAspectGrid').querySelectorAll('button').forEach(b => {
+          b.classList.toggle('active', b.dataset.aspect === d.imgAspect);
+        });
+      }
+      if (d.imgSetting) $('imgSetting').value = d.imgSetting;
+      if (d.imgCulture) $('imgCulture').value = d.imgCulture;
+      if (d.imgLighting) $('imgLighting').value = d.imgLighting;
+      if (d.imgPalette) $('imgPalette').value = d.imgPalette;
+      if (d.imgMood) $('imgMood').value = d.imgMood;
+      if (d.imgComposition) $('imgComposition').value = d.imgComposition;
+      if (d.imgExtras !== undefined) $('imgExtras').value = d.imgExtras || '';
+      if (d.imgStyleRef !== undefined) $('imgStyleRef').value = d.imgStyleRef || '';
+      if (d.imgAvoid !== undefined) $('imgAvoid').value = d.imgAvoid || '';
+      if (d.imgQuality) {
+        state.imgQuality = d.imgQuality;
+        $('imgQualityGrid').querySelectorAll('button').forEach(b => {
+          b.classList.toggle('active', b.dataset.quality === d.imgQuality);
+        });
+      }
+    }
+
+    // ============ HISTORY ============
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem(LS_HISTORY) || '[]'); } catch { return []; }
+    }
+    function saveToHistory(prompt) {
+      const hist = getHistory();
+      hist.unshift({
+        topik: $('topik').value.trim(),
+        mode: state.mode,
+        prompt,
+        saved: Date.now()
+      });
+      localStorage.setItem(LS_HISTORY, JSON.stringify(hist.slice(0, 5)));
+      renderHistory();
+    }
+    function renderHistory() {
+      const hist = getHistory();
+      const el = $('historyList');
+      if (!hist.length) {
+        el.innerHTML = `<p class="text-sm text-center py-8" style="color: var(--md-on-surface-muted);">${t('historyEmpty')}</p>`;
+        return;
+      }
+      el.innerHTML = hist.map((h, i) => `
+        <div class="rounded-2xl p-3 border cursor-pointer hover:border-emerald-500 transition" style="border-color: var(--md-outline); background: var(--md-surface-variant);" data-hist="${i}">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">${h.mode}</span>
+            <span class="text-xs" style="color: var(--md-on-surface-muted);">${timeAgo(h.saved)}</span>
+          </div>
+          <div class="font-semibold text-sm mb-1 truncate">${escapeHtml(h.topik || '(tiada topik)')}</div>
+          <div class="text-xs line-clamp-2" style="color: var(--md-on-surface-muted);">${escapeHtml(h.prompt.slice(0, 100))}...</div>
+        </div>
+      `).join('');
+      el.querySelectorAll('[data-hist]').forEach(div => {
+        div.addEventListener('click', () => {
+          const h = getHistory()[parseInt(div.dataset.hist)];
+          if (h) {
+            $('output').value = h.prompt;
+            updateCounter();
+            closeDrawer();
+            showToast('✓ Arahan dimuatkan dari sejarah');
+          }
+        });
+      });
+    }
+    function timeAgo(ts) {
+      const diff = Date.now() - ts;
+      const m = Math.floor(diff / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+      if (d > 0) return `${d}h lalu`;
+      if (h > 0) return `${h}j lalu`;
+      if (m > 0) return `${m}min lalu`;
+      return 'baru';
+    }
+
+    // ============ DRAWER ============
+    function openDrawer() { $('historyDrawer').classList.add('open'); renderHistory(); }
+    function closeDrawer() { $('historyDrawer').classList.remove('open'); }
+
+    // ============ QR CODE ============
+    function openQR() {
+      const val = $('output').value.trim();
+      if (!val) { showToast('⚠️ Jana arahan dahulu'); return; }
+      // Truncate for URL (QR has size limits)
+      const snippet = val.slice(0, 1500);
+      const dataUrl = `data:text/plain;charset=utf-8,${encodeURIComponent(snippet)}`;
+
+      $('qrCanvas').innerHTML = '';
+      const canvas = document.createElement('canvas');
+      QRCode.toCanvas(canvas, val.length > 1500 ? dataUrl : val, {
+        width: 240, margin: 1,
+        color: { dark: '#059669', light: '#ffffff' }
+      }, (err) => {
+        if (err) { showToast('⚠️ QR generation gagal'); return; }
+        $('qrCanvas').appendChild(canvas);
+      });
+      $('qrUrlPreview').textContent = val.length > 1500 ? '⚠️ Arahan terlalu panjang — QR menunjukkan 1500 aksara pertama. Gunakan Copy/Muat Turun sebagai alternatif.' : '✓ Arahan penuh dalam QR.';
+      $('qrModal').classList.add('open');
+    }
+    function closeQR() { $('qrModal').classList.remove('open'); }
+    function downloadQR() {
+      const canvas = $('qrCanvas').querySelector('canvas');
+      if (!canvas) return;
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `pintarai_qr_${Date.now()}.png`;
+      a.click();
+    }
+
+    // ============ THEME ============
+    function setTheme(theme) {
+      state.theme = theme;
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      localStorage.setItem(LS_THEME, theme);
+      const icon = $('themeIcon');
+      if (theme === 'dark') {
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>';
+      } else {
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>';
+      }
+    }
+
+    // ============ LANGUAGE ============
+    function setLang(lang) {
+      // Capture current state BEFORE re-init
+      const prev = {
+        bidang: $('bidang') ? $('bidang').value : '',
+        subjek: $('subjek') ? $('subjek').value : '',
+        subjekLain: $('subjekLain') ? $('subjekLain').value : ''
+      };
+
+      state.lang = lang;
+      localStorage.setItem(LS_LANG, lang);
+      $('langLabel').textContent = lang === 'ms' ? 'EN' : 'BM';
+      document.documentElement.lang = lang;
+
+      // Update all data-i18n
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (I18N[lang][key]) {
+          if (key === 'tipText' || key === 'kbdHelper') {
+            el.innerHTML = I18N[lang][key];
+          } else {
+            el.textContent = I18N[lang][key];
+          }
+        }
+      });
+
+      // Placeholders
+      $('topik').placeholder = t('topikPlaceholder');
+      $('rujukan').placeholder = t('rujukanPlaceholder');
+      $('subjekLain').placeholder = t('otherPlaceholder');
+      $('output').placeholder = t('outputPlaceholder');
+
+      // Re-init bidang dropdown with new language
+      initBidang();
+      // Restore previous selections
+      if (prev.bidang) {
+        $('bidang').value = prev.bidang;
+        onBidangChange();
+        if (prev.subjek) {
+          const opt = Array.from($('subjek').options).find(o => o.value === prev.subjek);
+          if (opt) $('subjek').value = prev.subjek;
+          if (prev.subjek === '__LAIN__') {
+            $('subjekLainWrap').style.display = '';
+            $('subjekLain').value = prev.subjekLain;
+          }
+        }
+      }
+    }
+
+    // ============ RANDOM EXAMPLE ============
+    function loadRandom() {
+      const ex = RANDOM_EXAMPLES[Math.floor(Math.random() * RANDOM_EXAMPLES.length)];
+      applyState(ex);
+      showToast('🎲 Contoh dimuatkan');
+    }
+
+    // ============ TOAST ============
+    let toastTimer;
+    function showToast(msg) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ============ UTILS ============
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+    }
+
+    // ============ EVENT BINDINGS ============
+    function bindEvents() {
+      $('modeGemini').addEventListener('click', () => setMode('gemini'));
+      $('modeNotebook').addEventListener('click', () => setMode('notebooklm'));
+      $('modePentadbir').addEventListener('click', () => setMode('pentadbir'));
+      $('modeImej').addEventListener('click', () => setMode('imej'));
+      $('objektif').addEventListener('change', () => {
+        updateVibeVisibility();
+        updateQuantityVisibility();
+        toggleObjektifLain();
+      });
+      $('bidang').addEventListener('change', onBidangChange);
+      $('subjek').addEventListener('change', () => {
+        $('subjekLainWrap').style.display = ($('subjek').value === '__LAIN__') ? '' : 'none';
+        if ($('subjek').value === '__LAIN__') setTimeout(() => $('subjekLain').focus(), 100);
+      });
+      $('cot').addEventListener('change', () => {
+        $('statusCoT').style.display = $('cot').checked ? '' : 'none';
+      });
+      $('quantity').addEventListener('input', () => {
+        $('quantityValue').textContent = $('quantity').value;
+      });
+      $('generateBtn').addEventListener('click', doGenerate);
+      $('copyBtn').addEventListener('click', doCopy);
+      $('downloadBtn').addEventListener('click', doDownload);
+      $('resetBtn').addEventListener('click', doReset);
+      $('saveTemplateBtn').addEventListener('click', saveTemplate);
+      $('randomBtn').addEventListener('click', loadRandom);
+
+      $('qrBtn').addEventListener('click', openQR);
+      $('qrCloseBtn').addEventListener('click', closeQR);
+      $('qrDownloadBtn').addEventListener('click', downloadQR);
+      $('qrModal').addEventListener('click', (e) => { if (e.target.id === 'qrModal') closeQR(); });
+
+      $('historyBtn').addEventListener('click', openDrawer);
+      $('historyCloseBtn').addEventListener('click', closeDrawer);
+
+      $('themeToggle').addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
+      $('langToggle').addEventListener('click', () => setLang(state.lang === 'ms' ? 'en' : 'ms'));
+
+      // Keyboard shortcut
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          doGenerate();
+        }
+        if (e.key === 'Escape') {
+          closeDrawer();
+          closeQR();
+        }
+      });
+    }
+
+    // ============ INIT ============
+    // Re-renders UI bits that depend on data constants after remote config is applied
+    function refreshDataDrivenUI() {
+      // Preserve user's current selections
+      const prev = {
+        bidang: $('bidang')?.value,
+        subjek: $('subjek')?.value,
+        persona: state.persona,
+        objektif: $('objektif')?.value,
+        pedagogi: $('pedagogi')?.value,
+        format: $('format')?.value
+      };
+
+      initBidang();
+      initPersonas();
+      initPedagogi();
+      initFormat();
+
+      // Restore selections if still valid
+      if (prev.bidang && Array.from($('bidang').options).some(o => o.value === prev.bidang)) {
+        $('bidang').value = prev.bidang;
+        onBidangChange();
+        if (prev.subjek && Array.from($('subjek').options).some(o => o.value === prev.subjek)) {
+          $('subjek').value = prev.subjek;
+        }
+      }
+      if (prev.persona) {
+        const chip = document.querySelector(`#personaChips button[data-persona="${CSS.escape(prev.persona)}"]`);
+        if (chip) {
+          $('personaChips').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          chip.classList.add('active');
+          state.persona = prev.persona;
+          $('statusPersona').textContent = prev.persona;
+        }
+      }
+
+      // Re-populate objektif for current mode
+      const opts = OBJECTIVES[state.mode] || OBJECTIVES.gemini;
+      if (opts && $('objektif')) {
+        $('objektif').innerHTML = opts.map(o => `<option value="${o}">${o}</option>`).join('');
+        if (prev.objektif && opts.includes(prev.objektif)) $('objektif').value = prev.objektif;
+        toggleObjektifLain();
+        updateVibeVisibility();
+        updateQuantityVisibility();
+      }
+      if (prev.pedagogi && PEDAGOGI_LIST.includes(prev.pedagogi)) $('pedagogi').value = prev.pedagogi;
+      if (prev.format && FORMAT_LIST.includes(prev.format)) $('format').value = prev.format;
+    }
+
+    async function init() {
+      // Restore theme
+      const savedTheme = localStorage.getItem(LS_THEME);
+      if (savedTheme) setTheme(savedTheme);
+      else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
+      else setTheme('light');
+
+      // Restore lang
+      const savedLang = localStorage.getItem(LS_LANG);
+      if (savedLang) setLang(savedLang);
+      else setLang('ms');
+
+      // ── Try cached remote config first (instant UX) ──
+      const cached = getCachedConfig();
+      if (cached?.data) {
+        applyRemoteConfig(cached.data);
+      }
+
+      // Initial UI render (with cached or default data)
+      initBidang();
+      initPersonas();
+      initPedagogi();
+      initFormat();
+      initVibes();
+      initBahasa();
+      initImageForm();
+      setMode('gemini');
+      bindEvents();
+      renderTemplates();
+      updateCounter();
+
+      // ── Background refresh if remote configured ──
+      if (REMOTE.PUB_ID) {
+        // Only show loading indicator if we have no cache (first visit)
+        const needsFetch = !cached || !cached.fresh;
+        if (needsFetch) setSyncStatus('loading', 'Memuat...');
+
+        try {
+          const fresh = await loadRemoteConfig();
+          if (fresh && hasAnyData(fresh)) {
+            applyRemoteConfig(fresh);
+            saveCachedConfig(fresh);
+            refreshDataDrivenUI();
+            setSyncStatus('success', 'Tersinkronisasi');
+          } else if (!cached) {
+            setSyncStatus('error', 'Guna default');
+          } else {
+            setSyncStatus('local');
+          }
+        } catch (e) {
+          console.warn('[PintarAI] Remote config error:', e);
+          setSyncStatus('error', 'Guna default');
+        }
+      }
+    }
+
+    function hasAnyData(cfg) {
+      return cfg && (
+        (cfg.bidangSubjek && cfg.bidangSubjek.length) ||
+        (cfg.persona && cfg.persona.length) ||
+        (cfg.objektif && cfg.objektif.length) ||
+        (cfg.pedagogi && cfg.pedagogi.length) ||
+        (cfg.format && cfg.format.length)
+      );
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
