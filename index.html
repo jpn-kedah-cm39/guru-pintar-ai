@@ -565,6 +565,20 @@
           <div id="vibeGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
         </div>
 
+        <!-- Compact Mode for NotebookLM Customize Box -->
+        <div id="compactWrap" class="hidden-smooth rounded-2xl p-4 border" style="display:none; background: var(--md-surface-variant); border-color: var(--md-outline);">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="compactMode" class="md3-checkbox mt-0.5" />
+            <div class="flex-1">
+              <div class="font-semibold text-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                <span data-i18n="compactTitle">Mod Customize NotebookLM (≤500 aksara)</span>
+              </div>
+              <div class="md3-helper" data-i18n="compactHelper">Aktifkan untuk jana prompt ringkas yang muat dalam kotak Customize NotebookLM Slide Deck. Untuk paste ke chat box, biarkan tidak ditandakan.</div>
+            </div>
+          </label>
+        </div>
+
         </div><!-- /#textForm -->
 
         <!-- ========== IMAGE FORM (IMEJ Mode) ========== -->
@@ -751,7 +765,7 @@
           <div>Jabatan Pendidikan Negeri Kedah</div>
         </div>
         <div class="flex items-center gap-2 text-xs" style="color: var(--md-on-surface-muted);">
-          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.0</span>
+          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.1</span>
           <span>© 2026 JPNK</span>
         </div>
       </div>
@@ -1362,6 +1376,8 @@
         lblBahasa: 'Bahasa Output',
         cotTitle: 'Gunakan Logik Analisis Langkah-demi-Langkah',
         cotHelper: 'Chain-of-Thought (C.o.T) — AI akan menaakul sebelum menjawab untuk output lebih tepat.',
+        compactTitle: 'Mod Customize NotebookLM (≤500 aksara)',
+        compactHelper: 'Aktifkan untuk jana prompt ringkas yang muat dalam kotak Customize NotebookLM Slide Deck. Untuk paste ke chat box, biarkan tidak ditandakan.',
         vibeLabel: 'Vibe Control',
         vibeHelper: 'Estetika Slide Deck',
         btnGenerate: 'JANA ARAHAN SISTEM',
@@ -1425,6 +1441,8 @@
         lblBahasa: 'Output Language',
         cotTitle: 'Use Step-by-Step Analytical Logic',
         cotHelper: 'Chain-of-Thought (C.o.T) — AI will reason before responding for more accurate output.',
+        compactTitle: 'NotebookLM Customize Mode (≤500 chars)',
+        compactHelper: 'Enable to generate a compact prompt that fits within the NotebookLM Slide Deck Customize box. For pasting into the chat box, leave unchecked.',
         vibeLabel: 'Vibe Control',
         vibeHelper: 'Slide Deck Aesthetic',
         btnGenerate: 'GENERATE SYSTEM PROMPT',
@@ -1465,7 +1483,8 @@
       vibe: null,
       bahasa: 'BM',
       lang: 'ms',
-      theme: 'light'
+      theme: 'light',
+      compactMode: false
     };
 
     // ============ DOM HELPERS ============
@@ -1701,8 +1720,12 @@ CARA GUNA:
         $('objektif').innerHTML = opts.map(o => `<option value="${o}">${o}</option>`).join('');
         $('pedagogiWrap').style.display = (mode === 'gemini') ? '' : 'none';
         updateVibeVisibility();
+        updateCompactVisibility();
         updateQuantityVisibility();
         toggleObjektifLain();
+      } else {
+        // Hide compact toggle in image mode
+        $('compactWrap').style.display = 'none';
       }
 
       // Status chip visibility for image mode
@@ -1720,6 +1743,17 @@ CARA GUNA:
     function updateVibeVisibility() {
       const show = (state.mode === 'notebooklm' && $('objektif').value === 'Formatkan Slide Deck');
       $('vibeWrap').style.display = show ? '' : 'none';
+    }
+
+    function updateCompactVisibility() {
+      // Compact mode toggle only relevant for NotebookLM
+      const show = (state.mode === 'notebooklm');
+      $('compactWrap').style.display = show ? '' : 'none';
+      // If switching away from notebooklm, uncheck and reset state
+      if (!show && state.compactMode) {
+        $('compactMode').checked = false;
+        state.compactMode = false;
+      }
     }
 
     function updateQuantityVisibility() {
@@ -1776,6 +1810,53 @@ CARA GUNA:
       return $('subjek').value || '[Belum dipilih]';
     }
 
+    // ============ COMPACT BUILDER (NotebookLM Customize ≤500 chars) ============
+    function buildCompactNotebookPrompt(o) {
+      // Map verbose values to ringkas equivalents
+      const kShort = {
+        'Sederhana': 'seimbang',
+        'Fakta Ketat': 'ketat fakta (tiada halusinasi)',
+        'Tinggi (Luar Kotak)': 'kreatif & metafora'
+      };
+      const bShort = {
+        'BM': 'Bahasa Melayu profesional',
+        'BI': 'Professional English',
+        'Dwibahasa': 'Dwibahasa BM-BI'
+      };
+      const bahasa = bShort[o.bahasa] || bShort['BM'];
+      const kreativiti = kShort[o.kreativiti] || o.kreativiti;
+
+      // Build mission line
+      let mission = o.tugasan;
+      if (o.qty) {
+        const label = QUANTITY_OBJECTIVES[o.tugasan]?.label.toLowerCase() || 'unit';
+        mission = `${o.tugasan} (${o.qty} ${label})`;
+      }
+
+      // Tahap context (skip if generic)
+      const tahapLine = (o.tahap && o.tahap !== 'Umum') ? ` (sasaran: ${o.tahap})` : '';
+
+      // Vibe block - only if Slide Deck format
+      let vibeLine = '';
+      if (o.tugasan === 'Formatkan Slide Deck' && o.vibeObj) {
+        vibeLine = `\nVIBE: ${o.vibeObj.keywords}`;
+      }
+
+      // CoT - only if checked, very short
+      const cotLine = o.useCoT ? '\nGuna Chain-of-Thought sebelum jawapan akhir.' : '';
+
+      // Compose
+      const prompt = `Berdasarkan dokumen yang dimuat naik, laksanakan: ${mission}${tahapLine}.
+
+Topik fokus: ${o.topik}
+Persona AI: ${o.personaId}
+Format output: ${o.format}
+Aras kreativiti: ${kreativiti}
+Bahasa: ${bahasa}${vibeLine}${cotLine}`;
+
+      return prompt;
+    }
+
     function buildPrompt() {
       const bidang = $('bidang').value || '[Belum dipilih]';
       const subjek = getSubjek();
@@ -1796,6 +1877,14 @@ CARA GUNA:
       const bahasaDesc = BAHASA_DESC[bahasa] || BAHASA_DESC['BM'];
       const qty = QUANTITY_OBJECTIVES[tugasan] ? $('quantity').value : null;
       const vibeObj = state.vibe ? VIBES.find(v => v.id === state.vibe) : null;
+
+      // ━━━ COMPACT MODE for NotebookLM Customize Box (≤500 chars) ━━━
+      if (state.mode === 'notebooklm' && state.compactMode) {
+        return buildCompactNotebookPrompt({
+          bidang, subjek, personaId, topik, tahap, tugasan, qty,
+          kreativiti, format, useCoT, bahasa, vibeObj
+        });
+      }
 
       // Build mission
       let mission = tugasan;
@@ -1944,16 +2033,44 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('charCount').textContent = chars.toLocaleString();
       $('tokenCount').textContent = tokens.toLocaleString();
 
-      // Context warning
+      // Context warning — adapts to mode
       const badge = $('contextBadge');
       if (tokens > 0) {
         badge.style.display = '';
-        if (tokens < 1000) {
-          badge.textContent = 'OK'; badge.className = 'px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium dark:bg-green-900/40 dark:text-green-300';
-        } else if (tokens < 4000) {
-          badge.textContent = 'Sederhana'; badge.className = 'px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium dark:bg-yellow-900/40 dark:text-yellow-300';
+
+        // Special handling for NotebookLM Compact Mode — show fit-status for Customize box
+        if (state.mode === 'notebooklm' && state.compactMode) {
+          if (chars <= 500) {
+            badge.textContent = '✓ Muat Customize Box';
+            badge.className = 'px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium dark:bg-green-900/40 dark:text-green-300';
+          } else if (chars <= 800) {
+            badge.textContent = '⚠ Hampir Limit (' + chars + '/500)';
+            badge.className = 'px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium dark:bg-yellow-900/40 dark:text-yellow-300';
+          } else {
+            badge.textContent = '✗ Terlalu Panjang (' + chars + '/500)';
+            badge.className = 'px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium dark:bg-red-900/40 dark:text-red-300';
+          }
+        } else if (state.mode === 'notebooklm') {
+          // Standard NotebookLM mode — hint that this fits chat box, not customize
+          if (chars <= 1500) {
+            badge.textContent = 'Sesuai Chat NotebookLM';
+            badge.className = 'px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium dark:bg-blue-900/40 dark:text-blue-300';
+          } else {
+            badge.textContent = 'Panjang';
+            badge.className = 'px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium dark:bg-yellow-900/40 dark:text-yellow-300';
+          }
         } else {
-          badge.textContent = 'Panjang'; badge.className = 'px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium dark:bg-red-900/40 dark:text-red-300';
+          // Default token-based warning for Gemini/Pentadbir/Imej
+          if (tokens < 1000) {
+            badge.textContent = 'OK';
+            badge.className = 'px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium dark:bg-green-900/40 dark:text-green-300';
+          } else if (tokens < 4000) {
+            badge.textContent = 'Sederhana';
+            badge.className = 'px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-medium dark:bg-yellow-900/40 dark:text-yellow-300';
+          } else {
+            badge.textContent = 'Panjang';
+            badge.className = 'px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium dark:bg-red-900/40 dark:text-red-300';
+          }
         }
       } else {
         badge.style.display = 'none';
@@ -2021,6 +2138,9 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         b.classList.toggle('active', b.dataset.bahasa === 'BM');
       });
       $('statusPersona').textContent = 'Guru Pakar';
+      // Reset compact mode toggle
+      state.compactMode = false;
+      $('compactMode').checked = false;
 
       // Reset image fields
       $('imgSubject').value = '';
@@ -2126,6 +2246,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         bahasa: state.bahasa,
         cot: $('cot').checked,
         vibe: state.vibe,
+        compactMode: state.compactMode,
         qty: $('quantity').value,
         // Image mode fields
         imgSubject: $('imgSubject').value,
@@ -2189,6 +2310,10 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('vibeGrid').querySelectorAll('button').forEach(b => {
         b.classList.toggle('active', b.dataset.vibe === state.vibe);
       });
+      // Restore compact mode toggle
+      state.compactMode = d.compactMode === true;
+      $('compactMode').checked = state.compactMode;
+      updateCompactVisibility();
       // Update tahap status badge
       const tBadge = $('statusTahap');
       if (d.tahap && d.tahap !== 'Umum') {
@@ -2418,6 +2543,9 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       });
       $('cot').addEventListener('change', () => {
         $('statusCoT').style.display = $('cot').checked ? '' : 'none';
+      });
+      $('compactMode').addEventListener('change', () => {
+        state.compactMode = $('compactMode').checked;
       });
       $('quantity').addEventListener('input', () => {
         $('quantityValue').textContent = $('quantity').value;
