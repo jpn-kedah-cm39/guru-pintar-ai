@@ -10,11 +10,18 @@
     tailwind.config = { darkMode: 'class' }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <!-- ============ ANALYTICS (Plausible — Privacy-friendly, GDPR/PDPA compliant, NO cookies) ============ -->
-  <!-- TO ENABLE: Sign up at https://plausible.io (free trial, $9/mo after) OR self-host (free).
-       Replace 'pintarai-kedah.example.com' below with your actual domain registered in Plausible.
-       Then UN-COMMENT the line below by removing the surrounding <!-- and --> markers. -->
-  <!-- <script defer data-domain="pintarai-kedah.example.com" src="https://plausible.io/js/script.js"></script> -->
+  <!-- ============ ANALYTICS: Microsoft Clarity ============
+       ✓ Configured for project: PintarAI Kedah (Project ID: wjuxg93dk4)
+       Dashboard: https://clarity.microsoft.com
+       To change project ID, replace the ID string in the script below.
+       Custom event tracking is wired via track() helper in JS. -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wjuxg93dk4");
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -365,7 +372,7 @@
             </svg>
           </div>
           <div>
-            <div class="text-xs font-semibold tracking-wider uppercase" style="color: var(--md-on-surface-muted);" data-i18n="brandDept">JPNK · Kedah Darul Aman</div>
+            <div class="text-xs font-semibold tracking-wider uppercase" style="color: var(--md-on-surface-muted);" data-i18n="brandDept">Jabatan Pendidikan Negeri Kedah</div>
             <div class="text-sm font-medium" style="color: var(--md-on-surface);" data-i18n="brandUnit">Sektor Pembelajaran</div>
           </div>
         </div>
@@ -1500,7 +1507,7 @@
     // ============ i18n ============
     const I18N = {
       ms: {
-        brandDept: 'JPNK · Kedah Darul Aman',
+        brandDept: 'Jabatan Pendidikan Negeri Kedah',
         brandUnit: 'Sektor Pembelajaran',
         badge: 'Dasar Pendidikan Digital',
         subtitle: 'Platform kemahiran \'Prompt Engineering\' untuk memperkasakan penggunaan AI dalam pendidikan.',
@@ -1569,7 +1576,7 @@
         historyEmpty: 'Tiada sejarah lagi. Jana arahan pertama anda!'
       },
       en: {
-        brandDept: 'JPNK · Kedah Darul Aman',
+        brandDept: 'Jabatan Pendidikan Negeri Kedah',
         brandUnit: 'Sektor Pembelajaran',
         badge: 'Digital Education Policy',
         subtitle: '\'Prompt Engineering\' platform to empower AI use in education.',
@@ -2208,14 +2215,21 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     }
 
     // ============ GENERATE ============
-    // ============ ANALYTICS HELPER ============
+    // ============ ANALYTICS HELPER (Microsoft Clarity) ============
+    // Sends custom events to Clarity dashboard via the official Clarity API.
+    // Silent no-op if Clarity isn't loaded (e.g. user has ad-blocker, network issue).
     function track(eventName, props) {
-      // Only fires if Plausible is enabled (window.plausible exists)
-      if (typeof window.plausible === 'function') {
-        try {
-          window.plausible(eventName, props ? { props } : undefined);
-        } catch (e) { /* silent */ }
-      }
+      if (typeof window.clarity !== 'function') return;
+      try {
+        // Send event name as a Clarity Custom Event
+        window.clarity('event', eventName);
+        // Send props as Clarity Custom Tags (key-value pairs)
+        if (props) {
+          Object.entries(props).forEach(([key, value]) => {
+            window.clarity('set', key, String(value));
+          });
+        }
+      } catch (e) { /* silent */ }
     }
 
     function doGenerate() {
