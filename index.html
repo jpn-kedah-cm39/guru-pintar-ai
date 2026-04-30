@@ -10,6 +10,11 @@
     tailwind.config = { darkMode: 'class' }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- ============ ANALYTICS (Plausible — Privacy-friendly, GDPR/PDPA compliant, NO cookies) ============ -->
+  <!-- TO ENABLE: Sign up at https://plausible.io (free trial, $9/mo after) OR self-host (free).
+       Replace 'pintarai-kedah.example.com' below with your actual domain registered in Plausible.
+       Then UN-COMMENT the line below by removing the surrounding <!-- and --> markers. -->
+  <!-- <script defer data-domain="pintarai-kedah.example.com" src="https://plausible.io/js/script.js"></script> -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -314,6 +319,36 @@
     .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
 
     @keyframes spin-sync { to { transform: rotate(360deg); } }
+
+    /* ============ VOICE MIC BUTTON ============ */
+    .voice-mic {
+      background: var(--md-surface-variant);
+      color: var(--md-on-surface-muted);
+      border: none; cursor: pointer;
+      opacity: 0.7;
+    }
+    .voice-mic:hover { opacity: 1; background: var(--md-surface); }
+    .voice-mic.recording {
+      background: #DC2626;
+      color: #ffffff;
+      opacity: 1;
+      animation: mic-pulse 1.2s ease-in-out infinite;
+    }
+    .voice-mic.recording svg { color: #ffffff; }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+    }
+    .voice-mic:disabled {
+      opacity: 0.3; cursor: not-allowed;
+    }
+
+    /* TTS Speak button states */
+    #speakBtn.speaking {
+      background: var(--md-primary) !important;
+      color: white !important;
+    }
+    #speakBtn.speaking svg { color: white; }
     .spinning { animation: spin-sync 1s linear infinite; }
   </style>
 </head>
@@ -449,13 +484,23 @@
         <!-- 4. Topik -->
         <div>
           <label class="md3-label block mb-2">4. <span data-i18n="lblTopik">Konteks Utama / Topik</span></label>
-          <input type="text" id="topik" placeholder="" class="md3-input w-full rounded-xl py-3 px-4" />
+          <div class="relative">
+            <input type="text" id="topik" placeholder="" class="md3-input w-full rounded-xl py-3 pl-4 pr-12" />
+            <button type="button" id="micTopik" class="voice-mic absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all" title="Suara → Teks (Voice Input)" aria-label="Voice Input">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"/></svg>
+            </button>
+          </div>
         </div>
 
         <!-- 5. Rujukan -->
         <div>
           <label class="md3-label block mb-2">5. <span data-i18n="lblRujukan">Suntikan Standard / Rujukan</span> <span class="font-normal" style="color: var(--md-on-surface-muted);">(<span data-i18n="optional">Pilihan</span>)</span></label>
-          <textarea id="rujukan" rows="3" placeholder="" class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+          <div class="relative">
+            <textarea id="rujukan" rows="3" placeholder="" class="md3-input w-full rounded-xl py-3 pl-4 pr-12 resize-none"></textarea>
+            <button type="button" id="micRujukan" class="voice-mic absolute right-2 top-2 w-9 h-9 rounded-full flex items-center justify-center transition-all" title="Suara → Teks (Voice Input)" aria-label="Voice Input">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"/></svg>
+            </button>
+          </div>
           <p class="md3-helper mt-1.5" data-i18n="rujukanHelper">Cth: BS 5.1.1 — Membezakan haba dan suhu.</p>
         </div>
 
@@ -498,6 +543,26 @@
           <div id="objektifLainWrap" class="mt-3 hidden-smooth" style="display:none;">
             <textarea id="objektifLain" rows="2" placeholder="Nyatakan objektif tugasan AI anda sendiri..." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
             <p class="md3-helper mt-1.5">💡 Tip: Tulis dengan jelas dan spesifik. Cth: "Bina rancangan aktiviti Hari Terbuka Sekolah bertemakan STEM"</p>
+          </div>
+          <!-- Refine Mode: Existing Output Input -->
+          <div id="refineWrap" class="mt-3 hidden-smooth" style="display:none;">
+            <label class="md3-label block mb-2">📋 <span data-i18n="lblRefineExisting">Output Sedia Ada</span></label>
+            <textarea id="refineExisting" rows="6" placeholder="Tampal output AI sebelum ini di sini, atau teks yang anda mahu naik taraf..." class="md3-input w-full rounded-xl py-3 px-4 resize-none font-mono text-xs"></textarea>
+            <p class="md3-helper mt-1.5">💡 <span data-i18n="refineHint1">Tampal output asal yang anda mahu refine</span></p>
+            <label class="md3-label block mt-3 mb-2">🎯 <span data-i18n="lblRefineGoal">Matlamat Refine</span></label>
+            <select id="refineGoal" class="md3-input w-full rounded-xl py-3 px-4 font-medium">
+              <option value="ringkaskan">Ringkaskan — buat lebih padat & ringkas</option>
+              <option value="luaskan">Luaskan — tambah lebih detail & contoh</option>
+              <option value="naik-taraf">Naik Taraf Bahasa — buat lebih profesional</option>
+              <option value="permudah">Permudah — buat lebih mudah difahami</option>
+              <option value="formal">Tukar Formal — gaya bahasa rasmi</option>
+              <option value="mesra">Tukar Mesra — gaya bahasa santai</option>
+              <option value="kbat">Tambah KBAT — masukkan soalan/elemen aras tinggi</option>
+              <option value="malaysia">Konteks Malaysia — sesuaikan dengan KSSM/DSKP</option>
+              <option value="restruktur">Restruktur — susun semula format & aliran</option>
+              <option value="custom">Khusus — saya akan nyatakan di Topik</option>
+            </select>
+            <p class="md3-helper mt-1.5">💡 <span data-i18n="refineHint2">Pilih cara AI patut tambah baik output anda</span></p>
           </div>
         </div>
 
@@ -707,6 +772,9 @@
             </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
+            <button id="speakBtn" class="md3-btn-tonal rounded-full w-9 h-9 flex items-center justify-center" title="Baca Output (Voice Output)" aria-label="Voice Output">
+              <svg id="speakIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z"/></svg>
+            </button>
             <button id="qrBtn" class="md3-btn-tonal rounded-full w-9 h-9 flex items-center justify-center" title="QR Code">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z M6.75 6.75h.008v.008H6.75V6.75ZM6.75 16.5h.008v.008H6.75V16.5ZM16.5 6.75h.008v.008H16.5V6.75ZM13.5 13.5h.008v.008H13.5v-.008ZM13.5 19.5h.008v.008H13.5v-.008ZM19.5 13.5h.008v.008H19.5v-.008ZM19.5 19.5h.008v.008H19.5v-.008ZM16.5 16.5h.008v.008H16.5v-.008Z"/></svg>
             </button>
@@ -762,7 +830,7 @@
           <div>Jabatan Pendidikan Negeri Kedah</div>
         </div>
         <div class="flex items-center gap-2 text-xs" style="color: var(--md-on-surface-muted);">
-          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.3</span>
+          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.4</span>
           <span>© 2026 JPNK</span>
         </div>
       </div>
@@ -1142,6 +1210,8 @@
         // === Penulisan Kreatif ===
         "Tulis Teks Ucapan",
         "Teks Ucapan Majlis Rasmi",
+        // === Refine Output (baharu di v3.4) ===
+        "♻️ Refine / Naik Taraf Output Sedia Ada",
         "✍️ Lain-lain / Nyatakan Sendiri"
       ],
       notebooklm: [
@@ -1162,6 +1232,8 @@
         "Post-Mortem Peperiksaan",
         "Ringkasan Perbincangan Mesyuarat",
         "Laporan Program / Aktiviti",
+        // === Refine Output (baharu di v3.4) ===
+        "♻️ Refine / Naik Taraf Output Sedia Ada",
         "✍️ Lain-lain / Nyatakan Sendiri"
       ]
     };
@@ -1461,6 +1533,10 @@
         cotHelper: 'Chain-of-Thought (C.o.T) — AI akan menaakul sebelum menjawab untuk output lebih tepat.',
         compactTitle: 'Mod Customize NotebookLM (≤500 aksara)',
         compactHelper: 'Aktifkan untuk jana prompt ringkas yang muat dalam kotak Customize NotebookLM Slide Deck. Untuk paste ke chat box, biarkan tidak ditandakan.',
+        lblRefineExisting: 'Output Sedia Ada',
+        lblRefineGoal: 'Matlamat Refine',
+        refineHint1: 'Tampal output asal yang anda mahu refine',
+        refineHint2: 'Pilih cara AI patut tambah baik output anda',
         vibeLabel: 'Vibe Control',
         vibeHelper: 'Estetika Slide Deck',
         btnGenerate: 'JANA ARAHAN SISTEM',
@@ -1526,6 +1602,10 @@
         cotHelper: 'Chain-of-Thought (C.o.T) — AI will reason before responding for more accurate output.',
         compactTitle: 'NotebookLM Customize Mode (≤500 chars)',
         compactHelper: 'Enable to generate a compact prompt that fits within the NotebookLM Slide Deck Customize box. For pasting into the chat box, leave unchecked.',
+        lblRefineExisting: 'Existing Output',
+        lblRefineGoal: 'Refinement Goal',
+        refineHint1: 'Paste the original output you want to refine',
+        refineHint2: 'Choose how AI should improve your output',
         vibeLabel: 'Vibe Control',
         vibeHelper: 'Slide Deck Aesthetic',
         btnGenerate: 'GENERATE SYSTEM PROMPT',
@@ -1854,9 +1934,13 @@ CARA GUNA:
     }
 
     function toggleObjektifLain() {
-      const isLain = $('objektif').value === '✍️ Lain-lain / Nyatakan Sendiri';
+      const val = $('objektif').value;
+      const isLain = val === '✍️ Lain-lain / Nyatakan Sendiri';
+      const isRefine = val === '♻️ Refine / Naik Taraf Output Sedia Ada';
       $('objektifLainWrap').style.display = isLain ? '' : 'none';
+      $('refineWrap').style.display = isRefine ? '' : 'none';
       if (isLain) setTimeout(() => $('objektifLain').focus(), 100);
+      if (isRefine) setTimeout(() => $('refineExisting').focus(), 100);
     }
 
     function getObjektif() {
@@ -1940,6 +2024,73 @@ Bahasa: ${bahasa}${vibeLine}${cotLine}`;
       return prompt;
     }
 
+    // ============ REFINE BUILDER (v3.4) — Naik taraf output sedia ada ============
+    function buildRefinePrompt(o) {
+      const existing = $('refineExisting').value.trim();
+      const goal = $('refineGoal').value;
+
+      if (!existing) {
+        return '⚠️ Sila tampal output sedia ada di kotak "Output Sedia Ada" dahulu sebelum menjana prompt Refine.';
+      }
+
+      const goalDescriptions = {
+        'ringkaskan': 'Ringkaskan output ini menjadi versi yang lebih padat dan ringkas. Pertahankan idea utama tetapi buang ayat berulang dan butiran yang tidak kritikal. Hasilkan kira-kira 50-60% panjang asal.',
+        'luaskan': 'Luaskan output ini dengan menambah lebih banyak butiran, contoh konkrit, penjelasan mendalam, dan elaborasi. Tambah konteks yang relevan supaya lebih komprehensif.',
+        'naik-taraf': 'Naik taraf bahasa output ini supaya lebih profesional dan formal. Ganti perkataan biasa dengan istilah teknikal yang sesuai. Pastikan struktur ayat lebih kompleks dan elegan.',
+        'permudah': 'Permudahkan output ini supaya lebih mudah difahami oleh pelajar/pembaca tahap rendah. Ganti istilah teknikal dengan perkataan biasa. Pecahkan ayat panjang kepada ayat pendek.',
+        'formal': 'Tukar nada output ini ke nada formal/rasmi mengikut standard surat KPM. Buang singkatan, gantikan dengan bahasa baku, dan tambah salutasi/penutup yang sesuai.',
+        'mesra': 'Tukar nada output ini ke nada mesra dan santai. Gunakan bahasa percakapan harian, "anda" dan bukan "tuan/puan", serta elakkan formaliti yang tidak perlu.',
+        'kbat': 'Tambah elemen Kemahiran Berfikir Aras Tinggi (KBAT) dalam output ini. Sertakan soalan analisis, sintesis, dan penilaian. Pastikan ada Aras Bloom 4-6 yang jelas.',
+        'malaysia': 'Sesuaikan output ini dengan konteks Malaysia. Gunakan contoh tempatan (lokasi, makanan, tokoh, peristiwa). Selaraskan dengan KSSM/KSSR/DSKP. Pastikan rujukan pendidikan adalah dari KPM.',
+        'restruktur': 'Restruktur output ini sepenuhnya. Susun semula urutan idea, gunakan heading dan subheading yang lebih jelas, dan pastikan aliran logik yang lebih baik.',
+        'custom': 'Naik taraf mengikut arahan khusus yang dinyatakan dalam medan Topik di atas.'
+      };
+      const goalDesc = goalDescriptions[goal] || goalDescriptions['naik-taraf'];
+
+      // Custom instruction from Topik field
+      const customInstruction = (goal === 'custom' && o.topik !== '[Topik tidak dinyatakan]')
+        ? `\n\nArahan khusus daripada pengguna:\n${o.topik}` : '';
+
+      const cotLine = o.useCoT
+        ? 'Gunakan Chain-of-Thought (CoT) — terangkan secara ringkas perubahan utama yang anda lakukan SEBELUM tunjukkan output yang telah diperbaiki.'
+        : 'Terus berikan output yang telah diperbaiki tanpa penjelasan panjang.';
+
+      return `<ROLE>
+Anda bertindak sebagai ${o.personaId} — iaitu ${o.personaDesc}, di Malaysia.
+Kepakaran anda: ${o.bidang} (Khusus: ${o.subjek}).
+Sasaran Pembaca/Pelajar: ${o.tahap}. Laras bahasa dan tahap kesukaran perlu sesuai dengan tahap ini.
+</ROLE>
+
+<EXISTING_OUTPUT>
+Berikut adalah output sedia ada yang perlu diperbaiki:
+"""
+${existing}
+"""
+</EXISTING_OUTPUT>
+
+<REFINEMENT_TASK>
+Misi Utama: Naik taraf output di atas mengikut arahan berikut:
+${goalDesc}${customInstruction}
+
+PENTING:
+1. Pertahankan KEPATUHAN dengan kurikulum Malaysia (KSSM/KSSR/DSKP/SKPMg2 jika berkaitan).
+2. JANGAN ubah fakta atau maklumat penting — hanya naik taraf cara penyampaian.
+3. JANGAN tambah maklumat rekaan yang tidak ada dalam output asal kecuali untuk tujuan elaborasi yang diminta.
+4. Pastikan output akhir lebih BAIK dari versi asal dalam aspek yang diminta.
+</REFINEMENT_TASK>
+
+<CONSTRAINTS_AND_RULES>
+1. Aras Kreativiti: ${o.kreativitiDesc}
+2. Format Persembahan: ${o.formatDesc}
+3. Logik: ${cotLine}
+4. Kualiti Bahasa: ${o.bahasaDesc}
+</CONSTRAINTS_AND_RULES>
+
+<EXECUTION>
+Berdasarkan parameter sistem di atas, naik taraf output sedia ada sekarang.
+</EXECUTION>`;
+    }
+
     function buildPrompt() {
       const bidang = $('bidang').value || '[Belum dipilih]';
       const subjek = getSubjek();
@@ -1966,6 +2117,14 @@ Bahasa: ${bahasa}${vibeLine}${cotLine}`;
         return buildCompactNotebookPrompt({
           bidang, subjek, personaId, topik, tahap, tugasan, qty,
           kreativiti, format, useCoT, bahasa, vibeObj
+        });
+      }
+
+      // ━━━ REFINE MODE — Naik taraf output sedia ada ━━━
+      if (tugasan === '♻️ Refine / Naik Taraf Output Sedia Ada') {
+        return buildRefinePrompt({
+          bidang, subjek, personaId, personaDesc, topik, tahap,
+          kreativitiDesc, formatDesc, useCoT, bahasaDesc
         });
       }
 
@@ -2049,6 +2208,16 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     }
 
     // ============ GENERATE ============
+    // ============ ANALYTICS HELPER ============
+    function track(eventName, props) {
+      // Only fires if Plausible is enabled (window.plausible exists)
+      if (typeof window.plausible === 'function') {
+        try {
+          window.plausible(eventName, props ? { props } : undefined);
+        } catch (e) { /* silent */ }
+      }
+    }
+
     function doGenerate() {
       // Branch: Image mode has completely different validation & output
       if (state.mode === 'imej') {
@@ -2062,6 +2231,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         $('output').value = prompt;
         updateCounter();
         saveToHistory(prompt);
+        track('Generate', { mode: 'imej', style: state.imgStyle });
         if (window.innerWidth < 1024) {
           $('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -2099,6 +2269,15 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       }
 
       saveToHistory(prompt);
+
+      // Analytics: track generation
+      const tugasan = getObjektif();
+      const isRefine = tugasan === '♻️ Refine / Naik Taraf Output Sedia Ada';
+      track('Generate', {
+        mode: state.mode,
+        compact: state.compactMode ? 'yes' : 'no',
+        refine: isRefine ? 'yes' : 'no'
+      });
 
       if (window.innerWidth < 1024) {
         $('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2199,6 +2378,9 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('subjekLainWrap').style.display = 'none';
       $('objektifLain').value = '';
       $('objektifLainWrap').style.display = 'none';
+      $('refineExisting').value = '';
+      $('refineGoal').value = 'ringkaskan';
+      $('refineWrap').style.display = 'none';
       $('topik').value = '';
       $('rujukan').value = '';
       $('tahap').value = 'Umum';
@@ -2323,6 +2505,8 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         tahap: $('tahap').value,
         objektif: $('objektif').value,
         objektifLain: $('objektifLain').value,
+        refineExisting: $('refineExisting').value,
+        refineGoal: $('refineGoal').value,
         pedagogi: $('pedagogi').value,
         kreativiti: $('kreativiti').value,
         format: $('format').value,
@@ -2378,6 +2562,8 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         if (objOpt) $('objektif').value = d.objektif;
       }
       if (d.objektifLain) $('objektifLain').value = d.objektifLain;
+      if (d.refineExisting !== undefined) $('refineExisting').value = d.refineExisting || '';
+      if (d.refineGoal) $('refineGoal').value = d.refineGoal;
       toggleObjektifLain();
       updateVibeVisibility();
       updateQuantityVisibility();
@@ -2622,6 +2808,176 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
     }
 
+    // ============ VOICE INPUT (Web Speech API) ============
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let activeRecognition = null;
+    let activeMicBtn = null;
+    let activeTargetEl = null;
+
+    function isVoiceSupported() {
+      return typeof SpeechRecognition !== 'undefined';
+    }
+
+    function attachVoiceInput(micId, targetId) {
+      const micBtn = $(micId);
+      const target = $(targetId);
+      if (!micBtn || !target) return;
+
+      if (!isVoiceSupported()) {
+        micBtn.disabled = true;
+        micBtn.title = 'Browser anda tidak menyokong Voice Input. Cuba Chrome/Edge.';
+        return;
+      }
+
+      micBtn.addEventListener('click', () => {
+        // Toggle: if same mic active, stop. Else start fresh.
+        if (activeRecognition && activeMicBtn === micBtn) {
+          activeRecognition.stop();
+          return;
+        }
+        // Stop any other active recognition
+        if (activeRecognition) {
+          try { activeRecognition.stop(); } catch (e) {}
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = state.lang === 'en' ? 'en-US' : 'ms-MY';
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        let baseText = target.value;
+        if (baseText && !baseText.endsWith(' ') && !baseText.endsWith('\n')) baseText += ' ';
+
+        recognition.onstart = () => {
+          micBtn.classList.add('recording');
+          activeRecognition = recognition;
+          activeMicBtn = micBtn;
+          activeTargetEl = target;
+          showToast('🎤 ' + (state.lang === 'en' ? 'Listening...' : 'Mendengar...'));
+        };
+
+        recognition.onresult = (event) => {
+          let interim = '';
+          let final = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) final += transcript;
+            else interim += transcript;
+          }
+          target.value = baseText + final + interim;
+          if (final) {
+            baseText = target.value;
+            if (!baseText.endsWith(' ')) baseText += ' ';
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.warn('Speech error:', event.error);
+          micBtn.classList.remove('recording');
+          if (event.error === 'not-allowed') {
+            showToast('⚠️ Akses mikrofon ditolak. Benarkan dalam tetapan browser.');
+          } else if (event.error === 'no-speech') {
+            showToast('⚠️ Tiada suara dikesan. Cuba lagi.');
+          } else if (event.error === 'network') {
+            showToast('⚠️ Ralat rangkaian. Pastikan internet aktif.');
+          } else {
+            showToast('⚠️ Ralat suara: ' + event.error);
+          }
+          activeRecognition = null;
+          activeMicBtn = null;
+          activeTargetEl = null;
+        };
+
+        recognition.onend = () => {
+          micBtn.classList.remove('recording');
+          activeRecognition = null;
+          activeMicBtn = null;
+          activeTargetEl = null;
+        };
+
+        try {
+          recognition.start();
+        } catch (e) {
+          showToast('⚠️ Tidak dapat memulakan mikrofon.');
+          micBtn.classList.remove('recording');
+        }
+      });
+    }
+
+    // ============ VOICE OUTPUT (Text-to-Speech) ============
+    let activeUtterance = null;
+
+    function isTtsSupported() {
+      return typeof window.speechSynthesis !== 'undefined';
+    }
+
+    function toggleSpeakOutput() {
+      if (!isTtsSupported()) {
+        showToast('⚠️ Browser anda tidak menyokong Voice Output.');
+        return;
+      }
+      const speakBtn = $('speakBtn');
+      const text = $('output').value.trim();
+
+      // If already speaking, stop
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        speakBtn.classList.remove('speaking');
+        activeUtterance = null;
+        return;
+      }
+
+      if (!text) {
+        showToast('⚠️ Tiada output untuk dibaca');
+        return;
+      }
+
+      // TTS works best on plain text — strip XML tags for natural speech
+      const plainText = text
+        .replace(/<\/?[A-Z_]+>/g, '. ')        // remove XML tags
+        .replace(/\s+/g, ' ')                    // collapse whitespace
+        .replace(/[#*_`]/g, '')                  // strip markdown
+        .trim();
+
+      const utterance = new SpeechSynthesisUtterance(plainText);
+      utterance.lang = state.lang === 'en' ? 'en-US' : 'ms-MY';
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      // Try to find a Malay voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(v => v.lang.startsWith(state.lang === 'en' ? 'en' : 'ms'))
+                          || voices.find(v => v.lang.startsWith('id'))  // Indonesian fallback (similar phonetics)
+                          || voices[0];
+      if (preferredVoice) utterance.voice = preferredVoice;
+
+      utterance.onstart = () => {
+        speakBtn.classList.add('speaking');
+        showToast('🔊 ' + (state.lang === 'en' ? 'Speaking...' : 'Membaca...'));
+      };
+      utterance.onend = () => {
+        speakBtn.classList.remove('speaking');
+        activeUtterance = null;
+      };
+      utterance.onerror = (e) => {
+        console.warn('TTS error:', e);
+        speakBtn.classList.remove('speaking');
+        showToast('⚠️ Ralat baca suara');
+      };
+
+      activeUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Pre-load voices (Chrome quirk: voices load async)
+    if (isTtsSupported()) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        // Voices now available
+      };
+    }
+
     // ============ UTILS ============
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
@@ -2659,6 +3015,13 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('randomBtn').addEventListener('click', loadRandom);
 
       $('qrBtn').addEventListener('click', openQR);
+
+      // Voice Input bindings (mic buttons on Topik & Rujukan)
+      attachVoiceInput('micTopik', 'topik');
+      attachVoiceInput('micRujukan', 'rujukan');
+
+      // Voice Output binding (Speak button)
+      $('speakBtn').addEventListener('click', toggleSpeakOutput);
       $('qrCloseBtn').addEventListener('click', closeQR);
       $('qrDownloadBtn').addEventListener('click', downloadQR);
       $('qrModal').addEventListener('click', (e) => { if (e.target.id === 'qrModal') closeQR(); });
