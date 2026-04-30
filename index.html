@@ -388,9 +388,6 @@
       <button id="modeImej" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
         <span class="text-lg">🎨</span> IMEJ
       </button>
-      <button id="modePentadbir" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
-        <span class="text-lg">📋</span> PENTADBIR
-      </button>
     </div>
   </div>
 
@@ -765,7 +762,7 @@
           <div>Jabatan Pendidikan Negeri Kedah</div>
         </div>
         <div class="flex items-center gap-2 text-xs" style="color: var(--md-on-surface-muted);">
-          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.1</span>
+          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.3</span>
           <span>© 2026 JPNK</span>
         </div>
       </div>
@@ -1031,74 +1028,140 @@
 
     // ============ DATA (defaults — can be overridden by Google Sheet) ============
     let BIDANG_LIST = [
-      { v: "BAHASA", l: "Bahasa" },
-      { v: "SAINS & MATEMATIK", l: "Sains & Matematik" },
-      { v: "KEMANUSIAAN", l: "Kemanusiaan" },
-      { v: "VOKASIONAL DAN TEKNOLOGI", l: "Vokasional dan Teknologi" },
+      { v: "SEKOLAH RENDAH (KSSR)", l: "Sekolah Rendah (KSSR)" },
+      { v: "BAHASA (KSSM)", l: "Bahasa (KSSM)" },
+      { v: "SAINS & MATEMATIK (KSSM)", l: "Sains & Matematik (KSSM)" },
+      { v: "TEKNOLOGI MAKLUMAT & KOMUNIKASI (TMK)", l: "Teknologi Maklumat & Komunikasi (TMK)" },
+      { v: "SAINS GUNAAN & TEKNIKAL", l: "Sains Gunaan & Teknikal" },
       { v: "PENDIDIKAN ISLAM", l: "Pendidikan Islam" },
+      { v: "SAINS SOSIAL", l: "Sains Sosial" },
+      { v: "MATA PELAJARAN ELEKTIF IKHTISAS (MPEI)", l: "Mata Pelajaran Elektif Ikhtisas (MPEI)" },
+      { v: "MATA PELAJARAN VOKASIONAL (MPV)", l: "Mata Pelajaran Vokasional (MPV)" },
       { v: "PRASEKOLAH (KSPK)", l: "Prasekolah (KSPK)" },
-      { v: "TINGKATAN 6", l: "Tingkatan 6" },
-      { v: "PENGURUSAN", l: "Pengurusan" },
-      { v: "PENDIDIKAN KHAS", l: "Pendidikan Khas (PPKI)" },
+      { v: "TINGKATAN 6 (STPM)", l: "Tingkatan 6 (STPM)" },
+      { v: "PENGURUSAN SEKOLAH", l: "Pengurusan Sekolah" },
+      { v: "PENDIDIKAN KHAS (PPKI)", l: "Pendidikan Khas (PPKI)" },
       { v: "KOKURIKULUM", l: "Kokurikulum" },
-      { v: "HAL EHWAL MURID", l: "Hal Ehwal Murid (HEM)" }
+      { v: "HAL EHWAL MURID (HEM)", l: "Hal Ehwal Murid (HEM)" }
     ];
 
     let SUBJECTS = {
-      "BAHASA": ["Bahasa Melayu", "Bahasa Inggeris", "Bahasa Arab", "Bahasa Cina", "Bahasa Tamil", "Kesusasteraan Melayu", "Kesusasteraan Inggeris", "Bahasa Isyarat Malaysia (BIM)"],
-      "SAINS & MATEMATIK": ["Sains", "Matematik", "Matematik Tambahan", "Biologi", "Kimia", "Fizik", "Sains Komputer", "Sains Sukan", "Matematik KSSR"],
-      "KEMANUSIAAN": ["Sejarah", "Geografi", "Pendidikan Jasmani", "Pendidikan Kesihatan", "Pendidikan Seni Visual", "Pendidikan Moral", "Sivik"],
-      "VOKASIONAL DAN TEKNOLOGI": ["Asas Sains Komputer", "Reka Bentuk dan Teknologi", "Ekonomi", "Prinsip Perakaunan", "Perniagaan", "Sains Rumah Tangga", "Grafik Komunikasi Teknikal", "Lukisan Kejuruteraan", "Reka Cipta"],
-      "PENDIDIKAN ISLAM": ["Pendidikan Islam", "Al-Quran Sunnah", "Syariah Islamiah", "Tasawwur Islam", "Maharat Al-Quran", "Hifz Al-Quran", "Pendidikan Al-Quran (KAFA)"],
-      "PRASEKOLAH (KSPK)": ["Tunjang Komunikasi", "Tunjang Sains & Teknologi", "Tunjang Fizikal & Estetika", "Tunjang Kerohanian & Moral", "Tunjang Kemanusiaan", "Keseluruhan Kurikulum"],
-      "TINGKATAN 6": ["Pengajian Am", "MUET", "Elektif Sains", "Elektif Kemanusiaan", "Pengajian Perniagaan", "Ekonomi STPM"],
-      "PENGURUSAN": ["Dialog Prestasi", "Kertas Kerja Program", "Minit Mesyuarat", "Teks Ucapan Rasmi", "Kajian Tindakan", "PLC/CPD", "Headcount/TOV/ETR", "SKPMg2", "Pelaporan PBD", "Post-Mortem Peperiksaan", "Intervensi Murid", "Program Transisi"],
-      "PENDIDIKAN KHAS": ["Kemahiran Asas Individu (KAI)", "Kemahiran Hidup", "Kemahiran Manipulatif", "Pengurusan Kendiri", "Rancangan Pendidikan Individu (RPI)"],
-      "KOKURIKULUM": ["Unit Beruniform", "Persatuan/Kelab", "Sukan & Permainan", "Program MSSM", "Pelaporan PAJSK"],
-      "HAL EHWAL MURID": ["Disiplin Murid", "Kaunseling", "Kebajikan Murid", "Skim Pinjaman Buku Teks", "Kesihatan Sekolah", "Program Anti-Buli"]
+      "SEKOLAH RENDAH (KSSR)": [
+        "Bahasa Melayu", "Bahasa Inggeris", "Bahasa Arab", "Bahasa Cina (SJKC)", "Bahasa Tamil (SJKT)",
+        "Matematik", "Sains", "Pendidikan Islam", "Pendidikan Moral", "Sejarah",
+        "Reka Bentuk dan Teknologi (RBT)", "Pendidikan Jasmani", "Pendidikan Kesihatan",
+        "Pendidikan Seni Visual", "Pendidikan Muzik"
+      ],
+      "BAHASA (KSSM)": [
+        "Bahasa Melayu (Teras)", "Bahasa Inggeris (Teras)", "Bahasa Arab", "Bahasa Cina", "Bahasa Tamil",
+        "Bahasa Punjabi", "Kesusasteraan Melayu Komunikatif", "Kesusasteraan Cina", "Kesusasteraan Tamil"
+      ],
+      "SAINS & MATEMATIK (KSSM)": [
+        "Matematik (Teras)", "Sains (Teras)", "Matematik Tambahan", "Sains Tambahan",
+        "Biologi", "Fizik", "Kimia"
+      ],
+      "TEKNOLOGI MAKLUMAT & KOMUNIKASI (TMK)": [
+        "Sains Komputer", "Asas Sains Komputer (ASK)"
+      ],
+      "SAINS GUNAAN & TEKNIKAL": [
+        "Reka Bentuk dan Teknologi (RBT)", "Reka Cipta", "Lukisan Kejuruteraan",
+        "Grafik Komunikasi Teknikal", "Pengajian Kejuruteraan Awam",
+        "Pengajian Kejuruteraan Elektrik dan Elektronik", "Pengajian Kejuruteraan Mekanikal",
+        "Asas Kelestarian", "Pertanian", "Sains Rumah Tangga"
+      ],
+      "PENDIDIKAN ISLAM": [
+        "Pendidikan Islam (Teras)", "Pendidikan Al-Quran dan Al-Sunnah",
+        "Pendidikan Syariah Islamiah", "Tasawwur Islam", "Hifz Al-Quran", "Maharat Al-Quran",
+        "Bahasa Arab", "Al-Adab wa Al-Balaghah", "Al-Lughah Al-Arabiah Al-Mu'asirah",
+        "Al-Syariah", "Manahij Al-'Ulum Al-Islamiah", "Usul Al-Din"
+      ],
+      "SAINS SOSIAL": [
+        "Sejarah (Teras)", "Pendidikan Moral (Teras)", "Geografi",
+        "Pendidikan Seni Visual", "Pendidikan Muzik", "Sains Sukan", "Bible Knowledge"
+      ],
+      "MATA PELAJARAN ELEKTIF IKHTISAS (MPEI)": [
+        "Ekonomi", "Perniagaan", "Prinsip Perakaunan", "Pengajian Keusahawanan"
+      ],
+      "MATA PELAJARAN VOKASIONAL (MPV)": [
+        "Akuakultur dan Haiwan Rekreasi", "Asuhan dan Pendidikan Awal Kanak-Kanak",
+        "Hiasan Dalaman", "Katering dan Penyajian", "Kerja Paip Domestik",
+        "Kimpalan Arka dan Gas", "Landskap dan Nurseri", "Menservis Automobil",
+        "Menservis Peralatan Elektrik Domestik", "Pembinaan Domestik", "Pembuatan Perabot",
+        "Pemprosesan Makanan", "Pendawaian Domestik", "Produksi Multimedia",
+        "Produksi Reka Tanda", "Reka Bentuk Grafik Digital", "Rekaan dan Jahitan Pakaian",
+        "Tanaman Makanan"
+      ],
+      "PRASEKOLAH (KSPK)": [
+        "Tunjang Komunikasi", "Tunjang Sains & Teknologi", "Tunjang Fizikal & Estetika",
+        "Tunjang Kerohanian & Moral", "Tunjang Kemanusiaan", "Keseluruhan Kurikulum"
+      ],
+      "TINGKATAN 6 (STPM)": [
+        "Pengajian Am", "MUET", "Elektif Sains", "Elektif Kemanusiaan",
+        "Pengajian Perniagaan", "Ekonomi STPM"
+      ],
+      "PENGURUSAN SEKOLAH": [
+        "Dialog Prestasi", "Kertas Kerja Program", "Minit Mesyuarat", "Teks Ucapan Rasmi",
+        "Kajian Tindakan", "PLC / CPD", "Headcount / TOV / ETR", "SKPMg2",
+        "Pelaporan PBD", "Post-Mortem Peperiksaan", "Intervensi Murid", "Program Transisi"
+      ],
+      "PENDIDIKAN KHAS (PPKI)": [
+        "Kemahiran Asas Individu (KAI)", "Kemahiran Hidup", "Kemahiran Manipulatif",
+        "Pengurusan Kendiri", "Rancangan Pendidikan Individu (RPI)"
+      ],
+      "KOKURIKULUM": [
+        "Unit Beruniform", "Persatuan / Kelab", "Sukan & Permainan",
+        "Program MSSM", "Pelaporan PAJSK"
+      ],
+      "HAL EHWAL MURID (HEM)": [
+        "Disiplin Murid", "Kaunseling", "Kebajikan Murid",
+        "Skim Pinjaman Buku Teks", "Kesihatan Sekolah", "Program Anti-Buli"
+      ]
     };
 
     let OBJECTIVES = {
       gemini: [
+        // === Pengajaran & Pembelajaran ===
         "Bina Modul/RPH",
         "Jana Bank Soalan KBAT",
         "Sediakan Kertas Kerja",
-        "Draf Surat Rasmi",
-        "Tulis Teks Ucapan",
         "Bina Rubrik Pemarkahan",
         "Jana Item PBD (Tahap Penguasaan)",
         "Sediakan Soalan Mengikut Aras Bloom",
         "Draf Pelaporan PBD Deskriptif",
         "Bina Aktiviti Didik Hibur",
-        "Analisis Kesalahan Lazim Murid",
         "Bina Latihan Pemulihan & Pengayaan",
+        // === Komunikasi & Surat-menyurat (dari Pentadbir) ===
+        "Draf Surat Rasmi",
+        "Draf Surat Siaran",
+        "Memo Arahan Dalaman",
+        "Surat Makluman kepada Ibu Bapa",
+        // === Pengurusan & Mesyuarat (dari Pentadbir) ===
+        "Template Agenda Mesyuarat",
+        "Format Minit Mesyuarat",
+        "Kertas Cadangan Program",
+        // === Penulisan Kreatif ===
+        "Tulis Teks Ucapan",
+        "Teks Ucapan Majlis Rasmi",
         "✍️ Lain-lain / Nyatakan Sendiri"
       ],
       notebooklm: [
+        // === Transformasi Akademik ===
         "Formatkan Slide Deck",
         "Ekstrak Nota Padat",
         "Skrip Podcast",
-        "Rumusan Laporan",
         "Pemetakan Aktiviti DSKP",
         "Soalan Latih Tubi dari Nota",
         "Glosari Istilah Penting",
         "Quiz Interaktif dari Nota",
         "Bandingkan Dua Sumber Rujukan",
-        "✍️ Lain-lain / Nyatakan Sendiri"
-      ],
-      pentadbir: [
-        "Draf Surat Siaran",
-        "Memo Arahan Dalaman",
-        "Surat Makluman kepada Ibu Bapa",
+        // === Analisis & Laporan (dari Pentadbir) ===
+        "Rumusan Laporan",
+        "Analisis Kesalahan Lazim Murid",
         "Analisis Prestasi Peperiksaan",
         "Skrip Pembentangan Dialog Prestasi",
         "Post-Mortem Peperiksaan",
-        "Template Agenda Mesyuarat",
-        "Format Minit Mesyuarat",
         "Ringkasan Perbincangan Mesyuarat",
         "Laporan Program / Aktiviti",
-        "Kertas Cadangan Program",
-        "Teks Ucapan Majlis Rasmi",
         "✍️ Lain-lain / Nyatakan Sendiri"
       ]
     };
@@ -1134,44 +1197,59 @@
 
     const RANDOM_EXAMPLES = [
       {
-        mode: 'gemini', bidang: 'SAINS & MATEMATIK', subjek: 'Matematik',
+        mode: 'gemini', bidang: 'SAINS & MATEMATIK (KSSM)', subjek: 'Matematik (Teras)',
         persona: 'Guru Pakar', topik: 'Fungsi Kuadratik — Lengkungan dan Titik Maksimum',
         rujukan: 'KSSM Matematik Tingkatan 4, Bab 2: Fungsi Kuadratik\nSP 2.1: Menjelaskan bentuk am fungsi kuadratik',
         objektif: 'Jana Bank Soalan KBAT', tahap: 'Tingkatan 4', pedagogi: 'HOTS Framework',
         kreativiti: 'Sederhana', format: 'Jadual Markdown', bahasa: 'BM', cot: true, qty: 10
       },
       {
-        mode: 'gemini', bidang: 'BAHASA', subjek: 'Bahasa Melayu',
+        mode: 'gemini', bidang: 'BAHASA (KSSM)', subjek: 'Bahasa Melayu (Teras)',
         persona: 'Penulis Kreatif', topik: 'Karangan Argumentatif — Cabaran Generasi Z dalam Era Digital',
         rujukan: '', objektif: 'Bina Modul/RPH', tahap: 'Tingkatan 5', pedagogi: 'Flipped Classroom',
         kreativiti: 'Tinggi (Luar Kotak)', format: 'Template RPH KPM', bahasa: 'BM', cot: true
       },
       {
-        mode: 'notebooklm', bidang: 'SAINS & MATEMATIK', subjek: 'Biologi',
+        mode: 'notebooklm', bidang: 'SAINS & MATEMATIK (KSSM)', subjek: 'Biologi',
         persona: 'Guru Pakar', topik: 'Sistem Respirasi Manusia — Pertukaran Gas di Alveolus',
         rujukan: 'DSKP Biologi Tingkatan 4, Tema 2', objektif: 'Formatkan Slide Deck',
         tahap: 'Tingkatan 4', kreativiti: 'Sederhana', format: 'Slide Outline', bahasa: 'Dwibahasa',
         cot: true, vibe: 'Future STEM'
       },
       {
-        mode: 'pentadbir', bidang: 'PENGURUSAN', subjek: 'Dialog Prestasi',
+        mode: 'notebooklm', bidang: 'PENGURUSAN SEKOLAH', subjek: 'Dialog Prestasi',
         persona: 'Pentadbir/SLT', topik: 'Analisis Prestasi SPM 2025 — Sekolah Menengah Kebangsaan',
         rujukan: 'GPS sekolah turun 0.3 berbanding 2024. Subjek kritikal: Matematik, Sains, Sejarah.',
         objektif: 'Skrip Pembentangan Dialog Prestasi', tahap: 'Pentadbir Sekolah',
         kreativiti: 'Fakta Ketat', format: 'Teks Berstruktur', bahasa: 'BM', cot: true
       },
       {
-        mode: 'pentadbir', bidang: 'PENGURUSAN', subjek: 'Minit Mesyuarat',
+        mode: 'gemini', bidang: 'PENGURUSAN SEKOLAH', subjek: 'Minit Mesyuarat',
         persona: 'Pentadbir/SLT', topik: 'Mesyuarat Panitia Matematik Bil. 1/2026',
         rujukan: '', objektif: 'Template Agenda Mesyuarat', tahap: 'Guru',
         kreativiti: 'Fakta Ketat', format: 'Format Minit Mesyuarat', bahasa: 'BM', cot: false
       },
       {
-        mode: 'gemini', bidang: 'PENDIDIKAN ISLAM', subjek: 'Pendidikan Islam',
+        mode: 'gemini', bidang: 'PENDIDIKAN ISLAM', subjek: 'Pendidikan Islam (Teras)',
         persona: 'Guru Pakar', topik: 'Adab Menuntut Ilmu — Penerapan Nilai Murni',
         rujukan: '', objektif: 'Bina Modul/RPH', tahap: 'Tingkatan 2',
         pedagogi: 'i-THINK', kreativiti: 'Sederhana', format: 'Template RPH KPM',
         bahasa: 'BM', cot: true
+      },
+      {
+        mode: 'gemini', bidang: 'SEKOLAH RENDAH (KSSR)', subjek: 'Matematik',
+        persona: 'Guru Pakar', topik: 'Pecahan dan Penambahan Pecahan Tahun 4',
+        rujukan: 'KSSR Matematik Tahun 4, Unit 5', objektif: 'Bina Modul/RPH', tahap: 'Tahun 4',
+        pedagogi: 'Game-Based Learning (GBL)', kreativiti: 'Sederhana',
+        format: 'Template RPH KPM', bahasa: 'BM', cot: true
+      },
+      {
+        mode: 'gemini', bidang: 'TEKNOLOGI MAKLUMAT & KOMUNIKASI (TMK)', subjek: 'Sains Komputer',
+        persona: 'Guru Pakar', topik: 'Asas Pengaturcaraan Python untuk Tingkatan 4',
+        rujukan: 'KSSM Sains Komputer Tingkatan 4, Modul 2: Asas Pengaturcaraan',
+        objektif: 'Bina Latihan Pemulihan & Pengayaan', tahap: 'Tingkatan 4',
+        pedagogi: 'PBL (Project-Based Learning)', kreativiti: 'Sederhana',
+        format: 'Teks Berstruktur', bahasa: 'Dwibahasa', cot: true, qty: 10
       }
     ];
 
@@ -1183,7 +1261,12 @@
       'Formatkan Slide Deck': { max: 30, default: 12, label: 'Bilangan Slide' },
       'Ekstrak Nota Padat': { max: 20, default: 5, label: 'Bilangan Poin' },
       'Bina Aktiviti Didik Hibur': { max: 20, default: 5, label: 'Bilangan Aktiviti' },
-      'Quiz Interaktif dari Nota': { max: 30, default: 10, label: 'Bilangan Soalan' }
+      'Quiz Interaktif dari Nota': { max: 30, default: 10, label: 'Bilangan Soalan' },
+      // === New in v3.2 ===
+      'Bina Latihan Pemulihan & Pengayaan': { max: 30, default: 10, label: 'Bilangan Latihan' },
+      'Glosari Istilah Penting': { max: 50, default: 15, label: 'Bilangan Istilah' },
+      'Bina Rubrik Pemarkahan': { max: 10, default: 5, label: 'Bilangan Kriteria' },
+      'Jana Item PBD (Tahap Penguasaan)': { max: 20, default: 6, label: 'Bilangan Item' }
     };
 
     // Descriptive mappings for richer prompts (adopted from Gemini approach)
@@ -1692,8 +1775,8 @@ CARA GUNA:
     // ============ MODE SWITCHING ============
     function setMode(mode) {
       state.mode = mode;
-      ['modeGemini', 'modeNotebook', 'modePentadbir', 'modeImej'].forEach(id => $(id).classList.remove('active'));
-      const map = { gemini: 'modeGemini', notebooklm: 'modeNotebook', pentadbir: 'modePentadbir', imej: 'modeImej' };
+      ['modeGemini', 'modeNotebook', 'modeImej'].forEach(id => $(id).classList.remove('active'));
+      const map = { gemini: 'modeGemini', notebooklm: 'modeNotebook', imej: 'modeImej' };
       $(map[mode]).classList.add('active');
 
       // Toggle text form vs image form
@@ -2265,6 +2348,8 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       };
     }
     function applyState(d) {
+      // Backwards compat: migrate old "pentadbir" mode → gemini (Pentadbir merged in v3.2)
+      if (d && d.mode === 'pentadbir') d.mode = 'gemini';
       setMode(d.mode || 'gemini');
       $('bidang').value = d.bidang || '';
       onBidangChange();
@@ -2415,19 +2500,36 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     function openQR() {
       const val = $('output').value.trim();
       if (!val) { showToast('⚠️ Jana arahan dahulu'); return; }
+
+      // Check if QRCode library loaded
+      if (typeof QRCode === 'undefined') {
+        showToast('⚠️ Library QR belum dimuat. Periksa sambungan internet.');
+        return;
+      }
+
       // Truncate for URL (QR has size limits)
       const snippet = val.slice(0, 1500);
       const dataUrl = `data:text/plain;charset=utf-8,${encodeURIComponent(snippet)}`;
 
       $('qrCanvas').innerHTML = '';
       const canvas = document.createElement('canvas');
-      QRCode.toCanvas(canvas, val.length > 1500 ? dataUrl : val, {
-        width: 240, margin: 1,
-        color: { dark: '#059669', light: '#ffffff' }
-      }, (err) => {
-        if (err) { showToast('⚠️ QR generation gagal'); return; }
-        $('qrCanvas').appendChild(canvas);
-      });
+      try {
+        QRCode.toCanvas(canvas, val.length > 1500 ? dataUrl : val, {
+          width: 240, margin: 1,
+          color: { dark: '#059669', light: '#ffffff' }
+        }, (err) => {
+          if (err) {
+            console.error('QR error:', err);
+            showToast('⚠️ QR generation gagal: ' + (err.message || 'Unknown error'));
+            return;
+          }
+          $('qrCanvas').appendChild(canvas);
+        });
+      } catch (e) {
+        console.error('QR exception:', e);
+        showToast('⚠️ QR error: ' + e.message);
+        return;
+      }
       $('qrUrlPreview').textContent = val.length > 1500 ? '⚠️ Arahan terlalu panjang — QR menunjukkan 1500 aksara pertama. Gunakan Copy/Muat Turun sebagai alternatif.' : '✓ Arahan penuh dalam QR.';
       $('qrModal').classList.add('open');
     }
@@ -2529,7 +2631,6 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     function bindEvents() {
       $('modeGemini').addEventListener('click', () => setMode('gemini'));
       $('modeNotebook').addEventListener('click', () => setMode('notebooklm'));
-      $('modePentadbir').addEventListener('click', () => setMode('pentadbir'));
       $('modeImej').addEventListener('click', () => setMode('imej'));
       $('objektif').addEventListener('change', () => {
         updateVibeVisibility();
@@ -2631,10 +2732,9 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     }
 
     async function init() {
-      // Restore theme
+      // Restore theme — DEFAULT to light unless user explicitly chose dark
       const savedTheme = localStorage.getItem(LS_THEME);
-      if (savedTheme) setTheme(savedTheme);
-      else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
+      if (savedTheme === 'dark') setTheme('dark');
       else setTheme('light');
 
       // Restore lang
