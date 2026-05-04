@@ -838,7 +838,7 @@
           <div>Jabatan Pendidikan Negeri Kedah</div>
         </div>
         <div class="flex items-center gap-2 text-xs" style="color: var(--md-on-surface-muted);">
-          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.4</span>
+          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.5</span>
           <span>© 2026 JPNK</span>
         </div>
       </div>
@@ -1197,7 +1197,6 @@
     let OBJECTIVES = {
       gemini: [
         // === Pengajaran & Pembelajaran ===
-        "Bina Modul/RPH",
         "Jana Bank Soalan KBAT",
         "Sediakan Kertas Kerja",
         "Bina Rubrik Pemarkahan",
@@ -1286,8 +1285,8 @@
       {
         mode: 'gemini', bidang: 'BAHASA (KSSM)', subjek: 'Bahasa Melayu (Teras)',
         persona: 'Penulis Kreatif', topik: 'Karangan Argumentatif — Cabaran Generasi Z dalam Era Digital',
-        rujukan: '', objektif: 'Bina Modul/RPH', tahap: 'Tingkatan 5', pedagogi: 'Flipped Classroom',
-        kreativiti: 'Tinggi (Luar Kotak)', format: 'Template RPH KPM', bahasa: 'BM', cot: true
+        rujukan: '', objektif: 'Bina Aktiviti Didik Hibur', tahap: 'Tingkatan 5', pedagogi: 'Flipped Classroom',
+        kreativiti: 'Tinggi (Luar Kotak)', format: 'Teks Berstruktur', bahasa: 'BM', cot: true
       },
       {
         mode: 'notebooklm', bidang: 'SAINS & MATEMATIK (KSSM)', subjek: 'Biologi',
@@ -1312,16 +1311,16 @@
       {
         mode: 'gemini', bidang: 'PENDIDIKAN ISLAM', subjek: 'Pendidikan Islam (Teras)',
         persona: 'Guru Pakar', topik: 'Adab Menuntut Ilmu — Penerapan Nilai Murni',
-        rujukan: '', objektif: 'Bina Modul/RPH', tahap: 'Tingkatan 2',
-        pedagogi: 'i-THINK', kreativiti: 'Sederhana', format: 'Template RPH KPM',
+        rujukan: '', objektif: 'Bina Aktiviti Didik Hibur', tahap: 'Tingkatan 2',
+        pedagogi: 'i-THINK', kreativiti: 'Sederhana', format: 'Teks Berstruktur',
         bahasa: 'BM', cot: true
       },
       {
         mode: 'gemini', bidang: 'SEKOLAH RENDAH (KSSR)', subjek: 'Matematik',
         persona: 'Guru Pakar', topik: 'Pecahan dan Penambahan Pecahan Tahun 4',
-        rujukan: 'KSSR Matematik Tahun 4, Unit 5', objektif: 'Bina Modul/RPH', tahap: 'Tahun 4',
+        rujukan: 'KSSR Matematik Tahun 4, Unit 5', objektif: 'Jana Bank Soalan KBAT', tahap: 'Tahun 4',
         pedagogi: 'Game-Based Learning (GBL)', kreativiti: 'Sederhana',
-        format: 'Template RPH KPM', bahasa: 'BM', cot: true
+        format: 'Jadual Markdown', bahasa: 'BM', cot: true, qty: 10
       },
       {
         mode: 'gemini', bidang: 'TEKNOLOGI MAKLUMAT & KOMUNIKASI (TMK)', subjek: 'Sains Komputer',
@@ -1377,7 +1376,6 @@
       'Jadual Markdown',
       'Format CSV',
       'Peta Minda',
-      'Template RPH KPM',
       'Format Kertas Soalan SPM',
       'Format Minit Mesyuarat',
       'Slide Outline',
@@ -1390,7 +1388,6 @@
       'Jadual Markdown': 'Jadual Markdown yang mudah dibaca dengan header yang jelas',
       'Format CSV': 'Data mentah dalam format CSV (dipisahkan dengan koma), sesuai untuk import ke spreadsheet',
       'Peta Minda': 'Rangka peta minda berhierarki dalam format teks berindent',
-      'Template RPH KPM': 'Mengikut template rasmi RPH KPM — Standard Kandungan, Standard Pembelajaran, Objektif, Aktiviti Pdpc, BBM, Refleksi',
       'Format Kertas Soalan SPM': 'Format kertas soalan SPM rasmi dengan arahan, peruntukan markah, dan masa',
       'Format Minit Mesyuarat': 'Format minit mesyuarat rasmi KPM/JPN — Perkara, Perbincangan, Keputusan/Tindakan, PIC, Tarikh Target',
       'Slide Outline': 'Outline slide deck — satu konsep utama per slide dengan bullet points ringkas',
