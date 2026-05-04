@@ -9,7 +9,7 @@
   <script>
     tailwind.config = { darkMode: 'class' }
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- QR library is lazy-loaded with multi-CDN fallback (see loadQRLibrary in JS) -->
   <!-- ============ ANALYTICS: Microsoft Clarity ============
        ✓ Configured for project: PintarAI Kedah (Project ID: wjuxg93dk4)
        Dashboard: https://clarity.microsoft.com
@@ -547,6 +547,7 @@
         <div>
           <label class="md3-label block mb-2">7. <span data-i18n="lblObjektif">Objektif Tugasan AI</span></label>
           <select id="objektif" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+          <p class="md3-helper mt-1.5" style="color: var(--md-primary);">♻️ <strong>Cari "Refine / Naik Taraf Output Sedia Ada"</strong> di hujung senarai untuk naik taraf output sedia ada.</p>
           <div id="objektifLainWrap" class="mt-3 hidden-smooth" style="display:none;">
             <textarea id="objektifLain" rows="2" placeholder="Nyatakan objektif tugasan AI anda sendiri..." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
             <p class="md3-helper mt-1.5">💡 Tip: Tulis dengan jelas dan spesifik. Cth: "Bina rancangan aktiviti Hari Terbuka Sekolah bertemakan STEM"</p>
@@ -2697,17 +2698,70 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     function closeDrawer() { $('historyDrawer').classList.remove('open'); }
 
     // ============ QR CODE ============
-    function openQR() {
+    // ============ QR LIBRARY MULTI-CDN LAZY LOADER ============
+    let qrLibPromise = null;
+    function loadQRLibrary() {
+      if (typeof QRCode !== 'undefined') return Promise.resolve(true);
+      if (qrLibPromise) return qrLibPromise;
+
+      const cdnList = [
+        'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
+        'https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js'
+      ];
+
+      qrLibPromise = new Promise((resolve, reject) => {
+        let cdnIndex = 0;
+        function tryNextCDN() {
+          if (cdnIndex >= cdnList.length) {
+            qrLibPromise = null; // Allow retry on next click
+            reject(new Error('Semua CDN gagal'));
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = cdnList[cdnIndex];
+          script.async = true;
+          script.onload = () => {
+            if (typeof QRCode !== 'undefined') {
+              console.log('✓ QR library loaded from CDN', cdnIndex + 1);
+              resolve(true);
+            } else {
+              cdnIndex++;
+              tryNextCDN();
+            }
+          };
+          script.onerror = () => {
+            console.warn('✗ QR CDN', cdnIndex + 1, 'failed');
+            cdnIndex++;
+            tryNextCDN();
+          };
+          document.head.appendChild(script);
+        }
+        tryNextCDN();
+      });
+
+      return qrLibPromise;
+    }
+
+    async function openQR() {
       const val = $('output').value.trim();
       if (!val) { showToast('⚠️ Jana arahan dahulu'); return; }
 
-      // Check if QRCode library loaded
-      if (typeof QRCode === 'undefined') {
-        showToast('⚠️ Library QR belum dimuat. Periksa sambungan internet.');
+      // Show modal immediately with loading state
+      $('qrCanvas').innerHTML = '<div class="text-center py-12" style="color: var(--md-on-surface-muted);"><div style="font-size:2rem;margin-bottom:8px;">⏳</div>Memuat library QR...</div>';
+      $('qrUrlPreview').textContent = '';
+      $('qrModal').classList.add('open');
+
+      // Lazy-load with multi-CDN fallback
+      try {
+        await loadQRLibrary();
+      } catch (e) {
+        console.error('QR library load failed:', e);
+        $('qrCanvas').innerHTML = '<div class="text-center py-8" style="color: #DC2626;"><div style="font-size:2rem;margin-bottom:8px;">⚠️</div>Gagal memuat library QR.<br/>Periksa sambungan internet anda.<br/><br/><span style="font-size:0.85rem;color:var(--md-on-surface-muted);">Tutup tetingkap dan cuba lagi.</span></div>';
         return;
       }
 
-      // Truncate for URL (QR has size limits)
+      // Generate QR
       const snippet = val.slice(0, 1500);
       const dataUrl = `data:text/plain;charset=utf-8,${encodeURIComponent(snippet)}`;
 
@@ -2720,18 +2774,17 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         }, (err) => {
           if (err) {
             console.error('QR error:', err);
-            showToast('⚠️ QR generation gagal: ' + (err.message || 'Unknown error'));
+            $('qrCanvas').innerHTML = '<div class="text-center py-8" style="color: #DC2626;">⚠️ QR generation gagal: ' + (err.message || 'Unknown') + '</div>';
             return;
           }
           $('qrCanvas').appendChild(canvas);
         });
       } catch (e) {
         console.error('QR exception:', e);
-        showToast('⚠️ QR error: ' + e.message);
+        $('qrCanvas').innerHTML = '<div class="text-center py-8" style="color: #DC2626;">⚠️ QR error: ' + e.message + '</div>';
         return;
       }
-      $('qrUrlPreview').textContent = val.length > 1500 ? '⚠️ Arahan terlalu panjang — QR menunjukkan 1500 aksara pertama. Gunakan Copy/Muat Turun sebagai alternatif.' : '✓ Arahan penuh dalam QR.';
-      $('qrModal').classList.add('open');
+      $('qrUrlPreview').textContent = val.length > 1500 ? '⚠️ Arahan terlalu panjang — QR menunjukkan 1500 aksara pertama.' : '✓ Arahan penuh dalam QR.';
     }
     function closeQR() { $('qrModal').classList.remove('open'); }
     function downloadQR() {
@@ -2926,6 +2979,46 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       return typeof window.speechSynthesis !== 'undefined';
     }
 
+    // ============ TTS VOICE SELECTION (Smart fallback chain) ============
+    function pickBestVoice(targetLang) {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return { voice: null, fallbackUsed: false, message: '' };
+
+      // For Bahasa Melayu (ms): native ms-MY > id-ID > English with Malaysian accent > any English
+      // For English (en): en-MY > en-GB > en-US > any English > any voice
+      if (targetLang === 'ms') {
+        // Priority 1: Native Malay voice (ideal)
+        let v = voices.find(x => x.lang === 'ms-MY' || x.lang === 'ms');
+        if (v) return { voice: v, fallbackUsed: false, message: '' };
+
+        // Priority 2: Indonesian (very similar phonetics — actually sounds OK for BM)
+        v = voices.find(x => x.lang === 'id-ID' || x.lang.startsWith('id'));
+        if (v) return { 
+          voice: v, fallbackUsed: true, 
+          message: '🔊 Suara Indonesia digunakan (Bahasa Melayu tiada di sistem anda)' 
+        };
+
+        // Priority 3: English voice — but warn user
+        v = voices.find(x => x.lang === 'en-MY')
+         || voices.find(x => x.lang === 'en-GB')
+         || voices.find(x => x.lang === 'en-US')
+         || voices.find(x => x.lang.startsWith('en'))
+         || voices[0];
+        return { 
+          voice: v, fallbackUsed: true, 
+          message: '⚠️ Suara Bahasa Melayu/Indonesia tiada di sistem. Sebutan akan kurang tepat.' 
+        };
+      } else {
+        // For English: prioritize en-GB or en-US
+        let v = voices.find(x => x.lang === 'en-GB')
+             || voices.find(x => x.lang === 'en-US')
+             || voices.find(x => x.lang === 'en-MY')
+             || voices.find(x => x.lang.startsWith('en'))
+             || voices[0];
+        return { voice: v, fallbackUsed: false, message: '' };
+      }
+    }
+
     function toggleSpeakOutput() {
       if (!isTtsSupported()) {
         showToast('⚠️ Browser anda tidak menyokong Voice Output.');
@@ -2955,21 +3048,29 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         .trim();
 
       const utterance = new SpeechSynthesisUtterance(plainText);
-      utterance.lang = state.lang === 'en' ? 'en-US' : 'ms-MY';
+      const targetLang = state.lang === 'en' ? 'en' : 'ms';
+      utterance.lang = targetLang === 'en' ? 'en-US' : 'ms-MY';
       utterance.rate = 0.95;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
-      // Try to find a Malay voice if available
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => v.lang.startsWith(state.lang === 'en' ? 'en' : 'ms'))
-                          || voices.find(v => v.lang.startsWith('id'))  // Indonesian fallback (similar phonetics)
-                          || voices[0];
-      if (preferredVoice) utterance.voice = preferredVoice;
+      // Smart voice selection
+      const { voice, fallbackUsed, message } = pickBestVoice(targetLang);
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang; // Use actual voice lang for accurate pronunciation
+      }
+
+      // Show fallback warning if BM not available
+      if (fallbackUsed && message) {
+        showToast(message);
+      }
 
       utterance.onstart = () => {
         speakBtn.classList.add('speaking');
-        showToast('🔊 ' + (state.lang === 'en' ? 'Speaking...' : 'Membaca...'));
+        if (!fallbackUsed) {
+          showToast('🔊 ' + (state.lang === 'en' ? 'Speaking...' : 'Membaca...'));
+        }
       };
       utterance.onend = () => {
         speakBtn.classList.remove('speaking');
