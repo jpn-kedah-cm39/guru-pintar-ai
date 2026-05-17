@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PintarAI Kedah — Platform Prompt Engineering</title>
-  <meta name="description" content="Sistem Prompt Engineering untuk Guru dan Pentadbir JPNK. Jana arahan AI berstruktur untuk Gemini & NotebookLM." />
+  <meta name="description" content="Sistem Prompt Engineering untuk Guru dan Pentadbir JPNK. Jana arahan AI berstruktur untuk Gemini, NotebookLM, ChatGPT, Copilot & Midjourney." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { darkMode: 'class' }
@@ -35,11 +35,23 @@
       --md-bg: #F8FAFC;
       --md-surface: #FFFFFF;
       --md-surface-variant: #F1F5F9;
+      --md-emerald-light: #ECFDF5;
       --md-outline: #CBD5E1;
       --md-on-surface: #0F172A;
       --md-on-surface-muted: #475569;
       --md-input-bg: #F1F5F9;
-      --md-card-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.02);
+      /* v3.8 Polish: 4-layer realistic depth shadow (ambient + key + fill + halo) */
+      --md-card-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.04),
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 4px 8px -2px rgba(15, 23, 42, 0.04),
+        0 16px 32px -8px rgba(15, 23, 42, 0.06);
+      --md-card-shadow-hover:
+        0 0 0 1px rgba(15, 23, 42, 0.06),
+        0 2px 4px rgba(15, 23, 42, 0.06),
+        0 8px 16px -4px rgba(15, 23, 42, 0.08),
+        0 24px 48px -12px rgba(15, 23, 42, 0.12);
+      --md-focus-ring: rgba(5, 150, 105, 0.15);
     }
     html.dark {
       --md-primary: #10B981;
@@ -49,11 +61,23 @@
       --md-bg: #0F172A;
       --md-surface: #1E293B;
       --md-surface-variant: #334155;
+      --md-emerald-light: #064E3B;
       --md-outline: #475569;
       --md-on-surface: #F1F5F9;
       --md-on-surface-muted: #94A3B8;
       --md-input-bg: #334155;
-      --md-card-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.2);
+      /* v3.8 Polish: dark mode shadow lebih intense untuk depth */
+      --md-card-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 4px 8px -2px rgba(0, 0, 0, 0.25),
+        0 16px 32px -8px rgba(0, 0, 0, 0.4);
+      --md-card-shadow-hover:
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        0 8px 16px -4px rgba(0, 0, 0, 0.35),
+        0 24px 48px -12px rgba(0, 0, 0, 0.5);
+      --md-focus-ring: rgba(16, 185, 129, 0.25);
     }
     html, body {
       font-family: 'Inter', system-ui, sans-serif;
@@ -64,11 +88,36 @@
       background-color: var(--md-bg);
       color: var(--md-on-surface);
       transition: background-color 240ms, color 240ms;
+      position: relative;
+    }
+    /* v3.8 Polish: Subtle grain texture overlay — Linear/Spotify signature.
+       SVG-based noise (2.5% opacity) untuk premium "analog" feel tanpa berat. */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml;utf8,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+    }
+    html.dark body::before {
+      opacity: 0.04;
+      mix-blend-mode: screen;
+    }
+    /* Ensure interactive content above grain overlay */
+    header, main, footer, .modal-backdrop, #toast {
+      position: relative;
+      z-index: 2;
     }
     .md3-card {
       background: var(--md-surface);
       box-shadow: var(--md-card-shadow);
-      transition: background-color 240ms, box-shadow 240ms;
+      transition: box-shadow 240ms cubic-bezier(0.2, 0, 0, 1), background-color 240ms, transform 240ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .md3-card:hover {
+      box-shadow: var(--md-card-shadow-hover);
     }
     .md3-input {
       background: var(--md-input-bg);
@@ -97,34 +146,70 @@
       padding-right: 2.75rem;
     }
 
+    /* v3.8 Polish: Premium button physics — spring scale + layered shadows */
     .md3-btn-primary {
       background: var(--md-primary); color: #fff;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+      box-shadow:
+        0 1px 2px rgba(5, 150, 105, 0.12),
+        0 2px 4px rgba(5, 150, 105, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transition:
+        background 220ms cubic-bezier(0.2, 0, 0, 1),
+        box-shadow 240ms cubic-bezier(0.2, 0, 0, 1),
+        transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .md3-btn-primary:hover {
       background: var(--md-primary-dark);
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
-      transform: translateY(-1px);
+      box-shadow:
+        0 2px 4px rgba(5, 150, 105, 0.18),
+        0 8px 16px -4px rgba(5, 150, 105, 0.35),
+        0 16px 32px -8px rgba(5, 150, 105, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px) scale(1.01);
     }
-    .md3-btn-primary:active { transform: translateY(0); }
+    .md3-btn-primary:active {
+      transform: translateY(0) scale(0.98);
+      transition-duration: 80ms;
+    }
     .md3-btn-tonal {
       background: var(--md-primary-container);
       color: var(--md-on-primary-container);
+      transition: all 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .md3-btn-tonal:hover { filter: brightness(1.05); }
+    .md3-btn-tonal:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+    .md3-btn-tonal:active { transform: scale(0.97); }
     .md3-btn-outlined {
       border: 1.5px solid var(--md-outline);
       color: var(--md-on-surface);
       background: transparent;
+      transition: all 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .md3-btn-outlined:hover { background: var(--md-surface-variant); }
+    .md3-btn-outlined:hover {
+      background: var(--md-surface-variant);
+      border-color: var(--md-primary);
+      transform: translateY(-1px);
+    }
+    .md3-btn-outlined:active { transform: scale(0.97); }
 
     .md3-chip {
       border: 1.5px solid var(--md-outline);
       background: var(--md-surface);
       color: var(--md-on-surface-muted);
+      transition:
+        background 220ms cubic-bezier(0.2, 0, 0, 1),
+        border-color 220ms cubic-bezier(0.2, 0, 0, 1),
+        color 220ms cubic-bezier(0.2, 0, 0, 1),
+        transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .md3-chip:hover { background: var(--md-surface-variant); }
+    .md3-chip:hover {
+      background: var(--md-surface-variant);
+      border-color: var(--md-primary);
+      transform: translateY(-1px);
+    }
+    .md3-chip:active { transform: scale(0.96); }
     .md3-chip.active {
       background: var(--md-primary-container);
       border-color: var(--md-primary);
@@ -134,18 +219,70 @@
     .md3-chip.active .chip-check { opacity: 1; transform: scale(1); }
     .chip-check { opacity: 0; transform: scale(0.6); transition: all 180ms; }
 
+    /* v3.8 Polish: Global focus ring system — animated emerald glow */
+    *:focus { outline: none; }
+    *:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--md-focus-ring), 0 0 0 1px var(--md-primary);
+      transition: box-shadow 180ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .md3-input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    input:focus-visible {
+      box-shadow:
+        0 0 0 3px var(--md-focus-ring),
+        0 0 0 1.5px var(--md-primary),
+        0 4px 12px -2px rgba(5, 150, 105, 0.15);
+    }
+    button:focus-visible {
+      box-shadow:
+        0 0 0 3px var(--md-focus-ring),
+        0 0 0 1.5px var(--md-primary);
+    }
+
+    /* v3.8 Polish: iOS-style segmented control dengan smooth spring transition */
     .segmented {
       background: var(--md-surface-variant);
       border: 1.5px solid var(--md-outline);
+      position: relative;
     }
     .seg-btn {
       color: var(--md-on-surface-muted);
       font-weight: 500;
+      position: relative;
+      z-index: 1;
+      transition:
+        color 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        background 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 180ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .seg-btn:hover:not(.active) {
+      color: var(--md-on-surface);
+      background: rgba(0, 0, 0, 0.03);
+    }
+    html.dark .seg-btn:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .seg-btn:active {
+      transform: scale(0.97);
     }
     .seg-btn.active {
       background: var(--md-primary);
       color: white;
-      box-shadow: 0 2px 8px rgba(5,150,105,0.25);
+      box-shadow:
+        0 2px 4px rgba(5, 150, 105, 0.2),
+        0 4px 12px rgba(5, 150, 105, 0.25),
+        0 8px 24px -8px rgba(5, 150, 105, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+    html.dark .seg-btn.active {
+      box-shadow:
+        0 2px 4px rgba(16, 185, 129, 0.25),
+        0 4px 12px rgba(16, 185, 129, 0.3),
+        0 8px 24px -8px rgba(16, 185, 129, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .md3-vibe {
@@ -192,28 +329,143 @@
       border-color: var(--md-outline);
     }
 
+    /* v3.8 Polish: Output XML syntax highlighting overlay.
+       Textarea jadi transparent, syntax-highlighted <pre> di belakang sync scroll.
+       Trick: padding & line-height MESTI match textarea exactly untuk alignment. */
+    .output-wrapper {
+      position: relative;
+      isolation: isolate;
+    }
+    .output-highlight {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 1.25rem; /* match textarea p-5 */
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: var(--md-on-surface);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow: hidden;
+      pointer-events: none;
+      border: 1px solid transparent;
+      border-radius: 1rem;
+      z-index: 1;
+    }
+    .output-wrapper > textarea.output-area {
+      position: relative;
+      background: transparent !important;
+      color: transparent !important;
+      caret-color: var(--md-on-surface);
+      z-index: 2;
+    }
+    .output-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--md-surface-variant);
+      border-radius: 1rem;
+      z-index: 0;
+    }
+    /* Token colors */
+    .tok-tag-open    { color: #94A3B8; font-weight: 500; }    /* < > brackets */
+    .tok-tag-name    { color: var(--md-primary); font-weight: 700; letter-spacing: 0.02em; }
+    .tok-section     { color: #1A73E8; font-weight: 700; }    /* === HEADERS === */
+    .tok-marker      { color: #B45309; font-weight: 600; }    /* SLIDE 1 —, JUDUL:, etc */
+    .tok-emoji       { font-size: 1.05em; }
+    .tok-comment     { color: #94A3B8; font-style: italic; }
+    .tok-divider     { color: var(--md-outline); }            /* ━━━ separators */
+    .tok-key         { color: #7C3AED; font-weight: 600; }    /* TAJUK:, BAHAN: */
+    html.dark .tok-tag-open    { color: #64748B; }
+    html.dark .tok-tag-name    { color: #34D399; }
+    html.dark .tok-section     { color: #60A5FA; }
+    html.dark .tok-marker      { color: #FBBF24; }
+    html.dark .tok-comment     { color: #64748B; }
+    html.dark .tok-divider     { color: #475569; }
+    html.dark .tok-key         { color: #A78BFA; }
+
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--md-outline); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
+    /* v3.8 Polish: Toast dengan spring physics (overshoot kemudian settle)
+       — Apple/iOS standard. Layered shadow untuk depth realistic. */
     .toast {
       position: fixed;
       bottom: 2rem;
       left: 50%;
-      transform: translateX(-50%) translateY(120%);
-      background: #1E293B;
+      transform: translateX(-50%) translateY(150%) scale(0.85);
+      background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
       color: white;
-      padding: 0.85rem 1.5rem;
+      padding: 0.95rem 1.65rem;
       border-radius: 999px;
       font-size: 0.9rem;
       font-weight: 500;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      letter-spacing: 0.01em;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        0 16px 32px -8px rgba(0, 0, 0, 0.25),
+        0 32px 64px -16px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
       opacity: 0;
-      transition: all 320ms cubic-bezier(0.2, 0, 0, 1);
+      /* Spring easing: overshoot then settle */
+      transition:
+        transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 280ms cubic-bezier(0.2, 0, 0, 1);
       z-index: 60;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
-    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.show {
+      transform: translateX(-50%) translateY(0) scale(1);
+      opacity: 1;
+    }
+    html.dark .toast {
+      background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+      color: #0F172A;
+    }
+
+    /* v3.8 Polish: Copy button morph animation (clipboard ↔ check).
+       Stack two SVGs, fade + rotate antara state — Notion/GitHub standard. */
+    .copy-icon-stack {
+      position: relative;
+      display: inline-flex;
+      width: 1rem;
+      height: 1rem;
+    }
+    .copy-icon-stack svg {
+      position: absolute;
+      inset: 0;
+      transition:
+        opacity 280ms cubic-bezier(0.2, 0, 0, 1),
+        transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .copy-icon-clipboard {
+      opacity: 1;
+      transform: rotate(0deg) scale(1);
+    }
+    .copy-icon-check {
+      opacity: 0;
+      transform: rotate(-90deg) scale(0.5);
+    }
+    .copy-btn-morph.copied .copy-icon-clipboard {
+      opacity: 0;
+      transform: rotate(90deg) scale(0.5);
+    }
+    .copy-btn-morph.copied .copy-icon-check {
+      opacity: 1;
+      transform: rotate(0deg) scale(1.1);
+    }
+    .copy-btn-morph.copied {
+      background: #10B981 !important;
+      box-shadow:
+        0 0 0 1px rgba(16, 185, 129, 0.4),
+        0 4px 12px rgba(16, 185, 129, 0.4),
+        0 8px 20px -4px rgba(16, 185, 129, 0.3) !important;
+    }
 
     input:focus, select:focus, textarea:focus {
       outline: none;
@@ -225,15 +477,52 @@
        style="display:none" so that JS setting style.display = '' can restore visibility. */
     .hidden-smooth { /* no rule - use inline style for hiding */ }
 
+    /* v3.8 Polish: Animated aurora mesh — Stripe/Linear/Vercel signature.
+       Multi-orb radial gradient yang drift perlahan untuk depth dinamik.
+       Respects prefers-reduced-motion. */
     .header-pattern {
+      position: relative;
+      overflow: hidden;
       background-image:
         radial-gradient(circle at 20% 50%, rgba(5,150,105,0.08) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(26,115,232,0.06) 0%, transparent 50%);
     }
+    .header-pattern::before {
+      content: '';
+      position: absolute;
+      inset: -20%;
+      pointer-events: none;
+      background:
+        radial-gradient(40% 40% at 15% 30%, rgba(5, 150, 105, 0.18), transparent 70%),
+        radial-gradient(35% 35% at 75% 20%, rgba(26, 115, 232, 0.12), transparent 70%),
+        radial-gradient(30% 30% at 50% 80%, rgba(16, 185, 129, 0.10), transparent 70%),
+        radial-gradient(25% 25% at 85% 60%, rgba(139, 92, 246, 0.08), transparent 70%);
+      animation: aurora-drift 28s ease-in-out infinite alternate;
+      filter: blur(40px);
+      z-index: 0;
+    }
+    .header-pattern > * { position: relative; z-index: 1; }
     html.dark .header-pattern {
       background-image:
         radial-gradient(circle at 20% 50%, rgba(16,185,129,0.10) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(59,130,246,0.08) 0%, transparent 50%);
+    }
+    html.dark .header-pattern::before {
+      background:
+        radial-gradient(40% 40% at 15% 30%, rgba(16, 185, 129, 0.22), transparent 70%),
+        radial-gradient(35% 35% at 75% 20%, rgba(59, 130, 246, 0.16), transparent 70%),
+        radial-gradient(30% 30% at 50% 80%, rgba(34, 211, 238, 0.14), transparent 70%),
+        radial-gradient(25% 25% at 85% 60%, rgba(168, 85, 247, 0.12), transparent 70%);
+    }
+    @keyframes aurora-drift {
+      0%   { transform: translate(0%, 0%) rotate(0deg) scale(1); }
+      25%  { transform: translate(3%, -2%) rotate(2deg) scale(1.05); }
+      50%  { transform: translate(-2%, 3%) rotate(-1deg) scale(1.02); }
+      75%  { transform: translate(2%, 2%) rotate(1deg) scale(1.08); }
+      100% { transform: translate(-3%, -1%) rotate(-2deg) scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .header-pattern::before { animation: none; }
     }
 
     /* Modal */
@@ -258,6 +547,186 @@
       transition: transform 200ms;
     }
     .modal-backdrop.open .modal-content { transform: scale(1); }
+
+    /* ===== OPR Main Button (Centered single button) ===== */
+    .opr-main-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 500px;
+      padding: 18px 24px;
+      background: linear-gradient(135deg, var(--md-primary) 0%, var(--md-primary-dark) 100%);
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 280ms cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 8px 24px -8px rgba(5,150,105,0.4), 0 4px 12px -4px rgba(0,0,0,0.1);
+      text-align: left;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    .opr-main-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at top right, rgba(255,255,255,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .opr-main-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 32px -8px rgba(5,150,105,0.5), 0 8px 16px -4px rgba(0,0,0,0.15);
+    }
+    .opr-main-btn:active {
+      transform: translateY(-1px);
+    }
+    .opr-main-btn-icon {
+      flex-shrink: 0;
+      font-size: 2rem;
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      backdrop-filter: blur(10px);
+    }
+    .opr-main-btn-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .opr-main-btn-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin-bottom: 2px;
+    }
+    .opr-main-btn-desc {
+      font-size: 0.825rem;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+    .opr-main-btn-arrow {
+      font-size: 1.5rem;
+      font-weight: 700;
+      transition: transform 280ms;
+      opacity: 0.85;
+    }
+    .opr-main-btn:hover .opr-main-btn-arrow {
+      transform: translateX(4px);
+      opacity: 1;
+    }
+
+    /* Laporan Modal — wider than default */
+    .laporan-modal {
+      max-width: 720px !important;
+      text-align: left !important;
+    }
+
+    /* ===== OPR PLC Cascade Cards ===== */
+    .opr-card {
+      display: flex;
+      gap: 14px;
+      padding: 18px;
+      background: var(--md-surface);
+      border: 1px solid var(--md-outline);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 240ms cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    .opr-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px -8px rgba(5,150,105,0.25), 0 4px 12px -4px rgba(0,0,0,0.1);
+      border-color: var(--md-primary);
+    }
+    .opr-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, var(--md-primary) 50%, transparent 100%);
+      opacity: 0;
+      transition: opacity 240ms;
+    }
+    .opr-card:hover::before { opacity: 1; }
+    .opr-card-icon {
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 1.6rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .opr-card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .opr-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--md-on-surface);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+    .opr-card-desc {
+      font-size: 0.825rem;
+      color: var(--md-on-surface-muted);
+      line-height: 1.4;
+    }
+    .opr-card-badge {
+      display: inline-block;
+      align-self: flex-start;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-top: 6px;
+    }
+
+    /* Auto-toggle Switch (for Auto-Rujukan and Few-Shot) */
+    .auto-toggle {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .auto-toggle input { opacity: 0; width: 0; height: 0; }
+    .auto-toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: var(--md-outline);
+      transition: 0.3s;
+      border-radius: 18px;
+    }
+    .auto-toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    .auto-toggle input:checked + .auto-toggle-slider {
+      background-color: var(--md-primary);
+    }
+    .auto-toggle input:checked + .auto-toggle-slider:before {
+      transform: translateX(14px);
+    }
 
     /* Template chip */
     .template-chip {
@@ -420,14 +889,17 @@
 
   <!-- ============== MODE TOGGLE ============== -->
   <div class="max-w-7xl w-full mx-auto px-4 sm:px-8 md:px-12 mb-6">
-    <div class="segmented inline-flex p-1.5 rounded-full shadow-sm flex-wrap" role="tablist">
-      <button id="modeGemini" class="seg-btn active px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
+    <div class="segmented inline-flex p-1.5 rounded-full shadow-sm flex-wrap" role="tablist" aria-label="Mod Pengguna">
+      <button id="modeGemini" class="seg-btn active px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2"
+              role="tab" aria-selected="true" aria-controls="textForm" type="button">
         <span class="text-lg">🪄</span> GEMINI
       </button>
-      <button id="modeNotebook" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
+      <button id="modeNotebook" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2"
+              role="tab" aria-selected="false" aria-controls="textForm" type="button">
         <span class="text-lg">🎙️</span> NOTEBOOKLM
       </button>
-      <button id="modeImej" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2">
+      <button id="modeImej" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2"
+              role="tab" aria-selected="false" aria-controls="imageForm" type="button">
         <span class="text-lg">🎨</span> IMEJ
       </button>
     </div>
@@ -465,6 +937,33 @@
         <!-- ========== TEXT FORM (Gemini/NotebookLM/Pentadbir) ========== -->
         <div id="textForm" class="space-y-6">
 
+        <!-- NotebookLM Sub-Mode Picker (NEW v3.8) - hanya muncul bila mode = notebooklm -->
+        <div id="notebookSubModeWrap" class="hidden-smooth" style="display:none;">
+          <label class="md3-label block mb-2" data-i18n="nblmSubModeLabel">📓 Jenis Output NotebookLM <span class="text-rose-500">*</span></label>
+          <div id="notebookSubModeGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+          <p id="notebookSubModeNote" class="md3-helper mt-2 leading-relaxed p-2.5 rounded-lg" style="background: var(--md-surface-variant);">
+            <!-- Dijana JS ikut sub-mode dipilih -->
+          </p>
+        </div>
+
+        <!-- NotebookLM Format selector (e.g., Detailed Deck vs Presenter Slides) -->
+        <div id="notebookFormatWrap" class="hidden-smooth" style="display:none;">
+          <label class="md3-label block mb-2" data-i18n="nblmFormatLabel">Format Output</label>
+          <select id="notebookFormat" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+        </div>
+
+        <!-- NotebookLM Length selector -->
+        <div id="notebookLengthWrap" class="hidden-smooth" style="display:none;">
+          <label class="md3-label block mb-2" data-i18n="nblmLengthLabel">Panjang</label>
+          <select id="notebookLength" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+        </div>
+
+        <!-- NotebookLM Visual Style (untuk Video Overview sahaja) -->
+        <div id="notebookVisualWrap" class="hidden-smooth" style="display:none;">
+          <label class="md3-label block mb-2" data-i18n="nblmVisualLabel">Gaya Visual</label>
+          <select id="notebookVisual" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+        </div>
+
         <!-- 1. Bidang -->
         <div>
           <label class="md3-label block mb-2">1. <span data-i18n="lblBidang">Kategori Bidang</span></label>
@@ -483,9 +982,16 @@
         </div>
 
         <!-- 3. Persona -->
-        <div>
+        <div id="personaWrap">
           <label class="md3-label block mb-2">3. <span data-i18n="lblPersona">Persona Sistem AI</span></label>
           <div id="personaChips" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- 3b. Hosts Focus / Tone (NotebookLM sahaja) -->
+        <div id="hostsFocusWrap" class="hidden-smooth" style="display:none;">
+          <label class="md3-label block mb-2" data-i18n="nblmHostsFocusLabel">3. 🎙️ Fokus AI Hosts (Apa yang patut hosts tekankan)</label>
+          <textarea id="hostsFocus" rows="2" placeholder="Cth: Tekankan aplikasi praktikal dalam konteks pelajar Tingkatan 4 di Malaysia. Sertakan contoh DSKP. Gunakan nada konversasi yang authoritative tapi friendly." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+          <p class="md3-helper mt-1.5" data-i18n="nblmHostsFocusHelp">💡 Untuk Audio Overview: arah AI hosts apa yang patut ditonjolkan. Untuk Slide Deck/Video: panduan emphasis content.</p>
         </div>
 
         <!-- 4. Topik -->
@@ -501,14 +1007,23 @@
 
         <!-- 5. Rujukan -->
         <div>
-          <label class="md3-label block mb-2">5. <span data-i18n="lblRujukan">Suntikan Standard / Rujukan</span> <span class="font-normal" style="color: var(--md-on-surface-muted);">(<span data-i18n="optional">Pilihan</span>)</span></label>
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <label class="md3-label block">5. <span data-i18n="lblRujukan">Suntikan Standard / Rujukan</span> <span class="font-normal" style="color: var(--md-on-surface-muted);">(<span data-i18n="optional">Pilihan</span>)</span></label>
+            <label class="flex items-center gap-2 cursor-pointer text-xs">
+              <span class="font-semibold" style="color: var(--md-on-surface);" data-i18n="autoRujukanLabel">🔖 Auto-Rujukan</span>
+              <span class="auto-toggle">
+                <input type="checkbox" id="autoRujukan" checked />
+                <span class="auto-toggle-slider"></span>
+              </span>
+            </label>
+          </div>
           <div class="relative">
             <textarea id="rujukan" rows="3" placeholder="" class="md3-input w-full rounded-xl py-3 pl-4 pr-12 resize-none"></textarea>
             <button type="button" id="micRujukan" class="voice-mic absolute right-2 top-2 w-9 h-9 rounded-full flex items-center justify-center transition-all" title="Suara → Teks (Voice Input)" aria-label="Voice Input">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"/></svg>
             </button>
           </div>
-          <p class="md3-helper mt-1.5" data-i18n="rujukanHelper">Cth: BS 5.1.1 — Membezakan haba dan suhu.</p>
+          <p class="md3-helper mt-1.5" data-i18n="rujukanHelper">Auto-isi mengikut Bidang. Anda boleh edit/clear. Contoh: BS 5.1.1 — Membezakan haba dan suhu.</p>
         </div>
 
         <!-- 6. Tahap Pelajar -->
@@ -584,6 +1099,9 @@
           <div class="flex justify-between text-xs mt-1" style="color: var(--md-on-surface-muted);">
             <span>1</span><span>25</span><span>50</span>
           </div>
+          <p id="quantityNote" class="md3-helper mt-2" style="display:none; padding: 8px 12px; background: #FEF3C7; border-left: 3px solid #F59E0B; border-radius: 6px; color: #78350F;" data-i18n="quantityNote">
+            ⚠️ <strong>Nota:</strong> Untuk Slide Deck di NotebookLM, jumlah slide sebenar mungkin tidak ikut bilangan ini dengan tepat. NotebookLM mempunyai algoritma sendiri untuk menentukan panjang persembahan.
+          </p>
         </div>
 
         <!-- 8. Pedagogi -->
@@ -594,7 +1112,7 @@
 
         <!-- 9. Kreativiti & 10. Format -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+          <div id="kreativitiWrap">
             <label class="md3-label block mb-2">9. <span data-i18n="lblKreativiti">Aras Kreativiti</span></label>
             <select id="kreativiti" class="md3-input w-full rounded-xl py-3 px-4 font-medium">
               <option value="Sederhana">Sederhana</option>
@@ -619,12 +1137,26 @@
         </div>
 
         <!-- 12. CoT -->
-        <div class="rounded-2xl p-4 border" style="background: var(--md-surface-variant); border-color: var(--md-outline);">
+        <div id="cotWrap" class="rounded-2xl p-4 border" style="background: var(--md-surface-variant); border-color: var(--md-outline);">
           <label class="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" id="cot" checked class="md3-checkbox mt-0.5" />
             <div class="flex-1">
               <div class="font-semibold text-sm" data-i18n="cotTitle">Gunakan Logik Analisis Langkah-demi-Langkah</div>
               <div class="md3-helper" data-i18n="cotHelper">Chain-of-Thought (C.o.T) — AI akan menaakul sebelum menjawab untuk output lebih tepat.</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- 13. Few-Shot Examples (NEW v3.7) -->
+        <div id="fewShotWrap" class="rounded-2xl p-4 border" style="background: var(--md-surface-variant); border-color: var(--md-outline);">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="fewShot" class="md3-checkbox mt-0.5" />
+            <div class="flex-1">
+              <div class="font-semibold text-sm flex items-center gap-2">
+                <span data-i18n="fewShotTitle">📚 Sertakan Contoh Output (Few-Shot)</span>
+                <span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background: linear-gradient(135deg, #F59E0B, #B45309); color: white; letter-spacing: 0.05em;">BAHARU</span>
+              </div>
+              <div class="md3-helper" data-i18n="fewShotHelper">Aktifkan untuk sertakan 1 contoh output siap dalam prompt. Meningkatkan konsistensi format AI ~30-40%. Tersedia untuk: Slide Deck, Bank Soalan KBAT, Item PBD, Aktiviti Didik Hibur, Bina Rubrik.</div>
             </div>
           </label>
         </div>
@@ -651,8 +1183,48 @@
 
         </div><!-- /#textForm -->
 
-        <!-- ========== IMAGE FORM (IMEJ Mode) ========== -->
+        <!-- ========== IMAGE FORM (IMEJ Mode) — v3.8 with AI target + sub-tab ========== -->
         <div id="imageForm" class="space-y-6 hidden-smooth" style="display:none;">
+
+          <!-- AI Target Dropdown (NEW v3.8) - applies to both sub-tabs - PROMINENT design -->
+          <div class="rounded-2xl p-5 border-2 shadow-sm" style="background: linear-gradient(135deg, var(--md-emerald-light, #d1fae5) 0%, var(--md-surface) 100%); border-color: var(--md-primary, #10b981);">
+            <div class="flex items-center gap-2 mb-3 flex-wrap">
+              <span class="text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1" style="background: var(--md-primary, #10b981); color: white; letter-spacing: 0.05em;">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                MULA DI SINI
+              </span>
+              <span class="text-xs font-semibold" style="color: var(--md-on-surface-muted);">Langkah 1 dari 3</span>
+            </div>
+            <label class="block mb-2 text-base font-bold" style="color: var(--md-on-surface);" data-i18n="lblAiTarget">🎯 AI Sasaran (Output Prompt Akan Diselaraskan)</label>
+            <select id="aiTarget" class="md3-input w-full rounded-xl py-3 px-4 font-semibold text-base" style="background: white; border-width: 2px;"></select>
+            <p id="aiTargetHint" class="mt-2.5 leading-relaxed text-sm p-2.5 rounded-lg" style="background: rgba(255,255,255,0.6); color: var(--md-on-surface);">
+              <!-- Hint contextual dijana JS ikut AI dipilih -->
+            </p>
+          </div>
+
+          <!-- Safety Banner (always visible in Imej mode) -->
+          <div class="flex items-start gap-2.5 p-3 rounded-xl" style="background: #FEF3C7; border-left: 3px solid #F59E0B;">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:#B45309;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z"/></svg>
+            <p class="text-xs leading-relaxed" style="color:#78350F;" data-i18n="imejSafetyBanner">
+              <strong>Penting:</strong> Fungsi ini hanya menjana arahan teks (prompt). Anda perlu generate imej di Gemini/AI lain.
+              <strong>Jangan guna wajah orang lain tanpa kebenaran</strong>. Untuk wajah pelajar, elakkan atau mohon dapatkan persetujuan bertulis ibu bapa. Elakkan kandungan politik, kontroversi, atau menghina mana-mana pihak (3R).
+            </p>
+          </div>
+
+          <!-- Sub-tab switcher: Imej Umum vs Kad Ucapan (NEW v3.8) -->
+          <div class="segmented inline-flex p-1.5 rounded-full shadow-sm flex-wrap w-full" role="tablist" aria-label="Sub-mod Imej">
+            <button id="subImejUmum" class="seg-btn active flex-1 px-4 py-2 rounded-full text-sm flex items-center justify-center gap-2"
+                    role="tab" aria-selected="true" aria-controls="imejUmumPanel" type="button">
+              <span>🎨</span> <span data-i18n="subImejUmum">Imej Umum</span>
+            </button>
+            <button id="subKadUcapan" class="seg-btn flex-1 px-4 py-2 rounded-full text-sm flex items-center justify-center gap-2"
+                    role="tab" aria-selected="false" aria-controls="kadUcapanPanel" type="button">
+              <span>🎉</span> <span data-i18n="subKadUcapan">Kad Ucapan</span>
+            </button>
+          </div>
+
+          <!-- ========== PANEL: IMEJ UMUM (existing fields) ========== -->
+          <div id="imejUmumPanel" role="tabpanel" aria-labelledby="subImejUmum">
 
           <!-- I1. Subjek Utama -->
           <div>
@@ -742,9 +1314,99 @@
           <div class="flex items-start gap-2.5 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
             <svg class="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/></svg>
             <p class="text-xs text-purple-900 dark:text-purple-200 leading-relaxed">
-              <strong>Cara Guna:</strong> Salin prompt yang dijana, buka <a href="https://gemini.google.com" target="_blank" class="underline font-semibold">Gemini</a>, tampal, dan klik butang imej (🖼️). Gemini akan jana imej mengikut spesifikasi anda.
+              <strong>Cara Guna:</strong> <span id="caraGunaText">Salin prompt yang dijana, buka AI sasaran yang dipilih di atas, tampal prompt dan tunggu imej dijana.</span>
             </p>
           </div>
+
+          </div><!-- /#imejUmumPanel -->
+
+          <!-- ========== PANEL: KAD UCAPAN (NEW v3.8) ========== -->
+          <div id="kadUcapanPanel" role="tabpanel" aria-labelledby="subKadUcapan" style="display:none;" class="space-y-6">
+
+            <!-- K1. Perayaan / Sambutan -->
+            <div>
+              <label class="md3-label block mb-2" data-i18n="kadLblPerayaan">1. Perayaan / Sambutan <span class="text-rose-500">*</span></label>
+              <select id="kadPerayaan" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+              <p class="md3-helper mt-1.5" data-i18n="kadPerayaanHelp">💡 24 perayaan utama Malaysia termasuk 6 sambutan sekolah</p>
+            </div>
+
+            <!-- K2. Tema Reka Bentuk -->
+            <div>
+              <label class="md3-label block mb-2" data-i18n="kadLblTema">2. Tema Reka Bentuk</label>
+              <div id="kadTemaGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+            </div>
+
+            <!-- K3. Nisbah Aspek -->
+            <div>
+              <label class="md3-label block mb-2" data-i18n="kadLblAspek">3. Nisbah Aspek Kad</label>
+              <div id="kadAspectGrid" class="grid grid-cols-5 gap-2"></div>
+              <p class="md3-helper mt-1.5" data-i18n="kadAspectHelp">💡 1:1 untuk IG post · 4:5 untuk IG portrait · 9:16 untuk WhatsApp Status/Story</p>
+            </div>
+
+            <!-- K4. Watak -->
+            <div>
+              <label class="md3-label block mb-2" data-i18n="kadLblWatak">4. Watak dalam Kad</label>
+              <select id="kadWatak" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            </div>
+
+            <!-- K5. Pesanan Custom -->
+            <div>
+              <label class="md3-label block mb-2" data-i18n="kadLblPesanan">5. Teks Pesanan pada Kad <span class="font-normal" style="color: var(--md-on-surface-muted);">(Pilihan — auto-fill kalau kosong)</span></label>
+              <textarea id="kadPesanan" rows="2" placeholder="Cth: Selamat Hari Raya Aidilfitri, Maaf Zahir dan Batin&#10;Atau biarkan kosong untuk guna teks default perayaan." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+              <p class="md3-helper mt-1.5" data-i18n="kadPesananHelp">💡 Untuk Gemini & ChatGPT, teks akan di-render dalam imej. Untuk Midjourney, overlay manual di Canva selepas generate.</p>
+            </div>
+
+            <!-- K6. Bahasa Pesanan -->
+            <div>
+              <label class="md3-label block mb-2" data-i18n="kadLblBahasaPesanan">6. Bahasa Teks Pesanan</label>
+              <div id="kadBahasaPesanan" class="flex gap-2 flex-wrap">
+                <button data-bahasa-pesanan="ms" class="md3-chip active rounded-full px-4 py-2 text-sm flex-1 text-center" type="button">🇲🇾 BM</button>
+                <button data-bahasa-pesanan="en" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center" type="button">🇬🇧 EN</button>
+                <button data-bahasa-pesanan="jawi" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center" type="button">📜 Jawi</button>
+                <button data-bahasa-pesanan="dual" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center" type="button">🌐 Dwibahasa</button>
+              </div>
+            </div>
+
+            <!-- K7. Personalisasi Wajah Toggle -->
+            <div class="rounded-2xl p-4 border" style="background: var(--md-surface-variant); border-color: var(--md-outline);">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" id="kadFaceToggle" class="md3-checkbox mt-0.5" />
+                <div class="flex-1">
+                  <div class="text-sm font-semibold" data-i18n="kadFaceLabel">👤 Personalisasi dengan Wajah</div>
+                  <div class="md3-helper mt-1" data-i18n="kadFaceHelper">
+                    Aktifkan untuk tambah arahan supaya AI gunakan wajah dari foto rujukan yang anda upload.
+                    Untuk Gemini & ChatGPT, anda boleh upload selfie/foto wajah selepas paste prompt.
+                  </div>
+                </div>
+              </label>
+              <div id="kadFaceWarning" class="mt-3 p-2.5 rounded-lg text-xs leading-relaxed" style="display:none; background:#FEF3C7; color:#78350F;">
+                ⚠️ <strong>Tanggungjawab anda</strong>: Pastikan kebenaran orang yang wajahnya digunakan. Jangan gunakan wajah selebriti, ahli politik, atau orang awam tanpa kebenaran.
+              </div>
+            </div>
+
+            <!-- K8. Elemen Tambahan -->
+            <div>
+              <label class="md3-label block mb-2" data-i18n="kadLblExtras">7. Elemen Tambahan <span class="font-normal" style="color: var(--md-on-surface-muted);">(Pilihan)</span></label>
+              <textarea id="kadExtras" rows="2" placeholder="Cth: tambah nama keluarga 'Keluarga Husaini' di bawah kad · tema warna khusus · simbol institusi (logo JPNK)..." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
+            </div>
+
+            <!-- Info card untuk perayaan terpilih -->
+            <div id="kadPerayaanInfo" class="flex items-start gap-2.5 p-3 rounded-xl" style="background: var(--md-emerald-light); border-left: 3px solid var(--md-primary);">
+              <svg class="w-5 h-5 flex-shrink-0 mt-0.5" style="color: var(--md-primary);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
+              <p id="kadPerayaanInfoText" class="text-xs leading-relaxed" style="color: var(--md-on-primary-container);">
+                <!-- Dijana JS berdasarkan perayaan yang dipilih -->
+              </p>
+            </div>
+
+            <!-- Cara Guna (different from Imej Umum) -->
+            <div class="flex items-start gap-2.5 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+              <svg class="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>
+              <p class="text-xs text-purple-900 dark:text-purple-200 leading-relaxed">
+                <strong>Tip Pro:</strong> Untuk hasil terbaik dengan teks BM/Jawi dalam kad, gunakan <strong>Google Gemini</strong>. Untuk reka bentuk artistik tinggi, gunakan <strong>Midjourney</strong> tapi overlay teks di Canva.
+              </p>
+            </div>
+
+          </div><!-- /#kadUcapanPanel -->
 
         </div><!-- /#imageForm -->
 
@@ -789,8 +1451,11 @@
             <button id="downloadBtn" class="md3-btn-tonal rounded-full w-9 h-9 flex items-center justify-center" title="Muat Turun">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
             </button>
-            <button id="copyBtn" class="md3-btn-primary rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
-              <svg id="copyIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"/></svg>
+            <button id="copyBtn" class="md3-btn-primary rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-1.5 copy-btn-morph">
+              <span class="copy-icon-stack">
+                <svg class="copy-icon-clipboard w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"/></svg>
+                <svg class="copy-icon-check w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+              </span>
               <span id="copyLabel" data-i18n="btnCopy">Salin</span>
             </button>
           </div>
@@ -804,7 +1469,10 @@
           <span id="statusTahap" class="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 font-medium dark:bg-purple-900/40 dark:text-purple-200 hidden-smooth" style="display:none;"></span>
         </div>
 
-        <textarea id="output" readonly placeholder="" class="output-area w-full rounded-2xl p-5 border resize-none focus:ring-0 focus:outline-none" style="height: 500px; min-height: 400px;"></textarea>
+        <div class="output-wrapper" style="height: 500px; min-height: 400px;">
+          <pre id="outputHighlight" class="output-highlight" aria-hidden="true"></pre>
+          <textarea id="output" readonly placeholder="✨ Klik 'JANA ARAHAN SISTEM' untuk menghasilkan prompt terstruktur..." aria-label="Output prompt yang dijana" class="output-area w-full rounded-2xl p-5 border resize-none focus:ring-0 focus:outline-none" style="height: 100%;"></textarea>
+        </div>
 
         <!-- Counter Bar -->
         <div class="flex items-center justify-between mt-3 text-xs" style="color: var(--md-on-surface-muted);">
@@ -818,6 +1486,33 @@
           <span id="contextBadge" class="hidden-smooth px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium dark:bg-green-900/40 dark:text-green-300" style="display:none;">OK</span>
         </div>
 
+        <!-- v3.8 Polish: Cara Guna Panel (Imej mode only) — separate dari prompt content.
+             Prompt copy buffer kekal bersih; instructions tunjuk visual sahaja. -->
+        <div id="caraGunaPanel" class="hidden-smooth mt-4 rounded-2xl border-2 overflow-hidden"
+             style="display:none; border-color: var(--md-primary); background: linear-gradient(135deg, var(--md-emerald-light) 0%, var(--md-surface) 100%);">
+          <div class="px-4 py-3 flex items-center gap-2 border-b" style="border-color: rgba(5,150,105,0.15); background: rgba(5,150,105,0.08);">
+            <svg class="w-5 h-5" style="color: var(--md-primary);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/>
+            </svg>
+            <div class="flex-1 flex items-center justify-between flex-wrap gap-2">
+              <span class="font-bold text-sm" style="color: var(--md-on-surface);">Cara Guna Prompt Ini</span>
+              <span id="caraGunaAiBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full" style="background: var(--md-primary); color: white;"></span>
+            </div>
+          </div>
+          <div class="p-4 space-y-2.5">
+            <ol id="caraGunaSteps" class="space-y-2 text-sm" style="color: var(--md-on-surface);"></ol>
+            <a id="caraGunaLink" href="#" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+               style="background: var(--md-primary); color: white;">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+              <span id="caraGunaLinkLabel">Buka AI →</span>
+            </a>
+            <p id="caraGunaTipPro" class="hidden-smooth text-xs mt-3 p-2.5 rounded-lg leading-relaxed"
+               style="display:none; background: #FEF3C7; color: #78350F; border-left: 3px solid #F59E0B;">
+            </p>
+          </div>
+        </div>
+
         <div class="mt-4 flex items-start gap-2.5 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
           <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
           <p class="text-xs text-blue-900 dark:text-blue-200 leading-relaxed" data-i18n="tipText">
@@ -827,6 +1522,88 @@
       </section>
     </div>
   </main>
+
+  <!-- ============== LAPORAN PLC CASCADE SECTION ============== -->
+  <section id="oprSection" class="border-t" style="border-color: var(--md-outline); background: linear-gradient(135deg, var(--md-emerald-light) 0%, var(--md-surface) 100%);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 py-8">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-2">
+        <span style="font-size: 1.75rem;">📋</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold" style="color: var(--md-on-surface);" data-i18n="oprTitle">Laporan PLC Cascade</h2>
+          <p class="text-sm mt-0.5" style="color: var(--md-on-surface-muted);" data-i18n="oprSubtitle">Selepas selesai cascade kepada panitia di sekolah, sila isi & hantar One Page Report (OPR).</p>
+        </div>
+      </div>
+
+      <!-- Single centered button -->
+      <div class="flex justify-center mt-6">
+        <button onclick="openLaporanModal()" class="opr-main-btn">
+          <span class="opr-main-btn-icon">📋</span>
+          <div class="opr-main-btn-content">
+            <div class="opr-main-btn-title" data-i18n="oprMainBtn">Laporan Bengkel Digital (AI)</div>
+            <div class="opr-main-btn-desc" data-i18n="oprMainBtnDesc">Klik untuk akses template &amp; hantar OPR</div>
+          </div>
+          <span class="opr-main-btn-arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== LAPORAN MODAL ============== -->
+  <div id="laporanModal" class="modal-backdrop">
+    <div class="modal-content laporan-modal">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-xl font-bold flex items-center gap-2" style="color: var(--md-on-surface);">
+            <span>📋</span>
+            <span data-i18n="oprModalTitle">Laporan Bengkel Digital (AI)</span>
+          </h3>
+          <p class="text-sm mt-1" style="color: var(--md-on-surface-muted);" data-i18n="oprModalSubtitle">Pilih tindakan yang anda mahu lakukan:</p>
+        </div>
+        <button onclick="closeLaporanModal()" class="p-2 rounded-full transition-all" style="background: var(--md-surface-variant);" aria-label="Tutup">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- 2 Buttons inside modal -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Button 1: Template Canva -->
+        <a href="https://canva.link/bl42iegthr9n60g" target="_blank" rel="noopener noreferrer" class="opr-card group" style="text-decoration: none;">
+          <div class="opr-card-icon" style="background: linear-gradient(135deg, #00C4CC 0%, #0066FF 100%);">🎨</div>
+          <div class="opr-card-content">
+            <div class="opr-card-title" data-i18n="oprBtn2">Muat Turun Template Canva</div>
+            <div class="opr-card-desc" data-i18n="oprBtn2Desc">Edit di Canva · Reka bentuk fleksibel · Eksport PDF sendiri</div>
+            <div class="opr-card-badge" style="background: #FEF3C7; color: #B45309;" data-i18n="oprBtn2Badge">🎨 Reka Bentuk Bebas</div>
+          </div>
+        </a>
+
+        <!-- Button 2: Hantar OPR -->
+        <a href="https://forms.gle/MHfr1SSZz56Kokd76" target="_blank" rel="noopener noreferrer" class="opr-card group" style="text-decoration: none;">
+          <div class="opr-card-icon" style="background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);">📤</div>
+          <div class="opr-card-content">
+            <div class="opr-card-title" data-i18n="oprBtn3">Hantar OPR (PDF)</div>
+            <div class="opr-card-desc" data-i18n="oprBtn3Desc">Upload PDF OPR yang siap ke Google Form · Direkod secara automatik ke JPNK</div>
+            <div class="opr-card-badge" style="background: #FEF3C7; color: #B45309;" data-i18n="oprBtn3Badge">📥 Selepas Siap</div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Workflow inside modal -->
+      <div class="mt-5 p-4 rounded-2xl flex items-center gap-3 flex-wrap" style="background: var(--md-surface-variant); border: 1px solid var(--md-outline);">
+        <span class="text-sm font-semibold" style="color: var(--md-on-surface);" data-i18n="oprFlow">Aliran Kerja:</span>
+        <span class="text-sm" style="color: var(--md-on-surface-muted);">
+          <span class="font-medium" style="color: var(--md-primary);" data-i18n="oprStep1">1. Muat Turun Canva</span>
+          <span class="mx-2">→</span>
+          <span class="font-medium" data-i18n="oprStep2">2. Isi &amp; Eksport PDF</span>
+          <span class="mx-2">→</span>
+          <span class="font-medium" style="color: #B45309;" data-i18n="oprStep3">3. Upload ke Google Form</span>
+          <span class="mx-2">→</span>
+          <span class="font-medium" data-i18n="oprStep4">4. ✅ Selesai</span>
+        </span>
+      </div>
+    </div>
+  </div>
 
   <!-- ============== FOOTER ============== -->
   <footer class="border-t mt-auto" style="border-color: var(--md-outline); background: var(--md-surface);">
@@ -838,7 +1615,7 @@
           <div>Jabatan Pendidikan Negeri Kedah</div>
         </div>
         <div class="flex items-center gap-2 text-xs" style="color: var(--md-on-surface-muted);">
-          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.5</span>
+          <span class="px-3 py-1 rounded-full font-medium" style="background: var(--md-surface-variant);">v3.8</span>
           <span>© 2026 JPNK</span>
         </div>
       </div>
@@ -852,7 +1629,7 @@
   <div id="qrModal" class="modal-backdrop">
     <div class="modal-content text-center">
       <h3 class="text-xl font-bold mb-4" data-i18n="qrTitle">Kongsi via QR Code</h3>
-      <p class="md3-helper mb-4" data-i18n="qrHelper">Scan untuk buka arahan dalam peranti lain</p>
+      <p class="md3-helper mb-4" data-i18n="qrHelper">Imbas untuk membuka arahan dalam peranti lain</p>
       <div id="qrCanvas" class="flex justify-center mb-4 p-4 bg-white rounded-2xl"></div>
       <p class="text-xs break-all mb-4 p-2 rounded-lg max-h-20 overflow-y-auto" style="background: var(--md-surface-variant); color: var(--md-on-surface-muted);" id="qrUrlPreview"></p>
       <div class="flex gap-2">
@@ -1255,6 +2032,79 @@
       { id: "Jurulatih Utama (JU)", desc: "Jurulatih Utama (Master Trainer) bertauliah KPM dalam bidang pedagogi dan kurikulum" }
     ];
 
+    // ============ DEFAULT REFERENCES (Auto-fill) ============
+    // Auto-isi field Rujukan berdasarkan Bidang yang dipilih.
+    // Format: { default: '...', '[Tahap]': '...' }
+    const DEFAULT_REFERENCES = {
+      'SEKOLAH RENDAH (KSSR)': {
+        default: 'DSKP KSSR (Edisi Semakan 2017), Buku Teks DBP, Modul KPM'
+      },
+      'BAHASA': {
+        default: 'DSKP Bahasa Melayu/Inggeris KSSM, Buku Teks DBP, Kamus Dewan Edisi 4',
+        'Tingkatan 4': 'DSKP BM/BI KSSM Tingkatan 4, Buku Teks DBP, Kamus Dewan Edisi 4, Buku Rujukan Pelangi',
+        'Tingkatan 5': 'DSKP BM/BI KSSM Tingkatan 5, Sukatan SPM, Buku Rujukan Pelangi/Sasbadi'
+      },
+      'SAINS & MATEMATIK': {
+        default: 'DSKP Sains/Matematik KSSM (Edisi Semakan 2017), Buku Teks DBP',
+        'Tingkatan 1': 'DSKP Sains/Matematik KSSM Tingkatan 1, Buku Teks DBP',
+        'Tingkatan 2': 'DSKP Sains/Matematik KSSM Tingkatan 2, Buku Teks DBP',
+        'Tingkatan 3': 'DSKP Sains/Matematik KSSM Tingkatan 3, Sukatan PT3, Buku Teks DBP',
+        'Tingkatan 4': 'DSKP Sains/Matematik KSSM Tingkatan 4, Buku Teks DBP, Sukatan SPM',
+        'Tingkatan 5': 'DSKP Sains/Matematik KSSM Tingkatan 5, Sukatan SPM, Buku Rujukan'
+      },
+      'TMK': {
+        default: 'DSKP Sains Komputer KSSM, IGCSE Computer Science (0478) Standards, Buku Teks DBP',
+        'Tingkatan 4': 'DSKP Sains Komputer KSSM T4, IGCSE 0478, Pseudocode standard',
+        'Tingkatan 5': 'DSKP Sains Komputer KSSM T5, Sukatan SPM 3770, IGCSE 0478'
+      },
+      'SAINS GUNAAN & TEKNIKAL': {
+        default: 'DSKP KSSM Aliran Vokasional, Modul ILKBS, Buku Teks DBP'
+      },
+      'PENDIDIKAN ISLAM': {
+        default: 'Tilawah Al-Quran (Rasm Uthmani), DSKP Pendidikan Islam KSSM, Buku Teks DBP, Hadis 40'
+      },
+      'SAINS SOSIAL': {
+        default: 'DSKP Sejarah/Geografi/Pendidikan Sivik KSSM, Buku Teks DBP, Tatabahasa Asas Sejarah'
+      },
+      'MPEI': {
+        default: 'DSKP Pendidikan Jasmani & Kesihatan KSSM, Modul Sukan KPM, Manual Kecergasan'
+      },
+      'MPV': {
+        default: 'DSKP Mata Pelajaran Vokasional (MPV) KSSM, Modul Vokasional KPM'
+      },
+      'PRASEKOLAH': {
+        default: 'KSPK (Kurikulum Standard Prasekolah Kebangsaan Edisi Semakan 2017), Modul Prasekolah KPM'
+      },
+      'TINGKATAN 6': {
+        default: 'Sukatan STPM/MUET, Buku Rujukan MPM (Majlis Peperiksaan Malaysia), Modul Pengajian Am'
+      },
+      'PENGURUSAN SEKOLAH': {
+        default: 'SKPMg2 (Standard Kualiti Pendidikan Malaysia), Buku Panduan Pengetua/Guru Besar KPM, Surat Pekeliling Ikhtisas'
+      },
+      'PENDIDIKAN KHAS': {
+        default: 'DSKP Pendidikan Khas, Modul Pendidikan Inklusif KPM, Garis Panduan Pelaksanaan Pendidikan Khas'
+      },
+      'KOKURIKULUM': {
+        default: 'Buku Panduan Pengurusan Kokurikulum KPM, Garis Panduan Aktiviti Luar, Surat Pekeliling Ikhtisas Kokurikulum'
+      },
+      'HEM': {
+        default: 'Buku Pengurusan Hal Ehwal Murid KPM, SPI HEM (Surat Pekeliling Ikhtisas), Garis Panduan SSDM/SPS'
+      }
+    };
+
+    /**
+     * Get default reference for given bidang + tahap combination.
+     * Returns string or empty string if no match.
+     */
+    function getDefaultReference(bidang, tahap) {
+      if (!bidang) return '';
+      const refMap = DEFAULT_REFERENCES[bidang];
+      if (!refMap) return '';
+      // Try tahap-specific first, fallback to default
+      if (tahap && refMap[tahap]) return refMap[tahap];
+      return refMap.default || '';
+    }
+
     const VIBES = [
       { id: "Corporate", label: "Corporate", desc: "Profesional · Navy", emoji: "💼",
         keywords: "[Clean Corporate Layout], [Navy & White Palette], [Data-Driven Design], [16:9 Business Formal] — sans-serif typography with clean data cards and minimal icons" },
@@ -1355,6 +2205,430 @@
       'Tinggi (Luar Kotak)': 'Tinggi — sangat kreatif, luar kotak, gunakan analogi dan metafora menarik'
     };
 
+    // ═══════════════════════════════════════════════════════════════
+    // OUTPUT STRUCTURES — Blueprint for each objektif
+    // Injected to prompt as <OUTPUT_STRUCTURE> block
+    // ═══════════════════════════════════════════════════════════════
+    const OUTPUT_STRUCTURES = {
+      'Jana Bank Soalan KBAT': `Setiap soalan WAJIB ikut struktur ini:
+
+**Soalan [n] — Aras Bloom [Aplikasi/Analisis/Penilaian/Cipta]**
+[Konteks/scenario Malaysia tempatan jika sesuai]
+[Soalan utama yang jelas]
+
+A) [pilihan A]
+B) [pilihan B]
+C) [pilihan C]
+D) [pilihan D]
+
+**Jawapan:** [huruf yang betul, cth: B]
+**Penyelesaian:** [langkah penyelesaian terperinci 2-4 ayat]
+**SP DSKP:** [kod SP yang berkaitan, cth: SP 1.5.2]
+
+Edaran Aras Bloom yang dicadangkan:
+- 30% Aplikasi (mudah)
+- 40% Analisis (sederhana)
+- 20% Penilaian (sukar)
+- 10% Cipta (sangat sukar)`,
+
+      'Jana Item PBD (Tahap Penguasaan)': `Setiap item WAJIB ikut struktur ini:
+
+**Item [n] — Tahap Penguasaan [1-6]**
+**Pernyataan Standard (SP):** [kod SP DSKP, cth: SP 3.1.2]
+**Tugasan:** [arahan jelas kepada murid]
+**Konteks:** [scenario/contoh untuk membantu murid]
+**Kriteria Pencapaian:**
+  ▸ TP 1: [deskripsi tahap minimum]
+  ▸ TP 2-3: [deskripsi tahap sederhana]
+  ▸ TP 4-5: [deskripsi tahap baik]
+  ▸ TP 6: [deskripsi tahap cemerlang]
+**Bukti Pencapaian:** [cara guru nilai - latihan/kuiz/projek/lisan]`,
+
+      'Bina Aktiviti Didik Hibur': `Setiap aktiviti WAJIB ikut struktur ini:
+
+**Aktiviti [n]: [Nama Aktiviti]**
+**Masa:** [anggaran masa dalam minit]
+**Bahan:** [senarai bahan/alat diperlukan]
+**Persediaan Guru:** [apa yang guru perlu sediakan sebelum kelas]
+**Langkah Pelaksanaan:**
+  1. [langkah pertama]
+  2. [langkah kedua]
+  3. [langkah ketiga]
+**Outcome/Pembelajaran:** [apa yang murid akan belajar/dapat]
+**Variasi:** [opsyen modifikasi untuk tahap berbeza]
+**Penilaian:** [cara menilai keberkesanan aktiviti]`,
+
+      'Bina Latihan Pemulihan & Pengayaan': `Setiap latihan WAJIB ikut struktur ini:
+
+**Latihan [n] — Tahap Kesukaran: [Asas/Sederhana/Lanjutan]**
+**Konsep Pemulihan:** [konsep yang perlu dikuatkan]
+**Diagnosa Awal:** [1-2 soalan untuk kenal pasti kelemahan]
+**Aktiviti Pemulihan:**
+  Langkah 1: [aktiviti mudah]
+  Langkah 2: [aktiviti progresif]
+  Langkah 3: [aktiviti konsolidasi]
+**Strategi:** [strategi pengajaran sesuai untuk murid lemah]
+**Latih Tubi:** [3-5 soalan pengukuhan]
+**Tanda Pencapaian:** [petunjuk murid telah pulih]`,
+
+      'Bina Rubrik Pemarkahan': `Rubrik WAJIB ikut struktur ini (jadual markdown):
+
+| Kriteria | Pemberat | TP 1 (Belum Capai) | TP 2-3 (Sederhana) | TP 4-5 (Baik) | TP 6 (Cemerlang) |
+|----------|----------|---------------------|---------------------|----------------|-------------------|
+| [Kriteria 1] | [%] | [deskriptor] | [deskriptor] | [deskriptor] | [deskriptor] |
+| [Kriteria 2] | [%] | [deskriptor] | [deskriptor] | [deskriptor] | [deskriptor] |
+| [Kriteria 3] | [%] | [deskriptor] | [deskriptor] | [deskriptor] | [deskriptor] |
+| [Kriteria 4] | [%] | [deskriptor] | [deskriptor] | [deskriptor] | [deskriptor] |
+
+**Jumlah Pemberat:** 100%
+**Skala Markah:** TP 1 (0-29%) · TP 2-3 (30-49%) · TP 4-5 (50-79%) · TP 6 (80-100%)
+**Nota Penggunaan:** [panduan ringkas untuk guru]`,
+
+      'Formatkan Slide Deck': `Setiap slide WAJIB ikut struktur ini:
+
+[Slide N] — [JENIS: COVER/OBJEKTIF/KONSEP/AKTIVITI/QUIZ/PENUTUP]
+═════════════════════════════════════════════
+JUDUL: [tajuk pendek 3-7 perkataan]
+SARI KATA: [optional, untuk cover/section breaks]
+KANDUNGAN:
+  ▸ [bullet 1, ≤15 perkataan]
+  ▸ [bullet 2, ≤15 perkataan]
+  ▸ [bullet 3, ≤15 perkataan]
+VISUAL CUE: [deskripsi visual untuk pereka slaid]
+SPEAKER NOTES: [skrip fasilitator 2-3 ayat; sertakan ms estimasi]
+═════════════════════════════════════════════
+
+Komposisi WAJIB:
+1. Slide 1: COVER (judul + sari kata + visual hook)
+2. Slide 2: OBJEKTIF PEMBELAJARAN (3-4 SP DSKP)
+3. Slide 3-N: KONSEP UTAMA (1 konsep = 1 slide)
+4. Slide N+1: AKTIVITI/QUIZ (interaktif)
+5. Slide terakhir: PENUTUP & RUMUSAN (key takeaway + CTA)`,
+
+      'Surat Rasmi (KPM/JPN)': `Surat WAJIB ikut format rasmi KPM:
+
+[KOP SURAT JABATAN/SEKOLAH]
+═════════════════════════════
+Rujukan Kami: [kod rujukan]
+Tarikh: [tarikh penuh BM]
+
+[Alamat penerima penuh]
+
+Tuan/Puan,
+
+**[TAJUK SURAT - HURUF BESAR BERGARIS]**
+
+Dengan hormatnya saya merujuk perkara di atas.
+
+2. [Perenggan utama - penyataan tujuan dan latar belakang]
+
+3. [Perenggan tindakan - apa yang dipohon/dimaklumkan]
+
+4. [Perenggan penutup - aturan tindak lanjut/maklum balas]
+
+5. Sekian, terima kasih.
+
+**"BERKHIDMAT UNTUK NEGARA"**
+
+Saya yang menjalankan amanah,
+
+.....................................
+([NAMA PEGAWAI])
+[Jawatan]
+[Bahagian/Unit]
+b.p. [Pengarah/Pengetua]`,
+
+      'Memo': `Memo WAJIB ikut format JPN:
+
+[KOP JABATAN/SEKOLAH]
+═══════════════════════
+MEMO
+
+Rujukan Kami: [kod]
+Tarikh: [tarikh BM]
+
+KEPADA: [penerima]
+DARIPADA: [pengirim]
+SALINAN: [cc list]
+
+**PERKARA: [TAJUK MEMO HURUF BESAR]**
+
+1. [Pendahuluan - 1-2 ayat ringkas]
+
+2. [Isi utama - point-point yang ingin disampaikan]
+   2.1 [sub-poin]
+   2.2 [sub-poin]
+
+3. [Tindakan diperlukan - PIC dan tarikh akhir]
+
+4. Sebarang pertanyaan, sila hubungi [nama/telefon].
+
+Sekian, harap maklum.
+
+[Tandatangan]
+([NAMA])
+[Jawatan]`,
+
+      'Agenda Mesyuarat': `Agenda WAJIB ikut format ini (jadual):
+
+**AGENDA MESYUARAT [NAMA MAJLIS] BILANGAN [X] TAHUN [YYYY]**
+
+| Tarikh | : | [tarikh] |
+| Masa | : | [pukul - pukul] |
+| Tempat | : | [lokasi penuh] |
+| Pengerusi | : | [nama jawatan] |
+
+**PERKARA:**
+
+1.0  UCAPAN PENGERUSI
+     1.1 Aluan dan salam
+     1.2 Kandungan ucapan ringkas
+
+2.0  PENGESAHAN MINIT MESYUARAT [BIL SEBELUM]
+     2.1 Pindaan (jika ada)
+     2.2 Pengesahan
+
+3.0  PERKARA-PERKARA BERBANGKIT
+     3.1 [item dari minit lepas]
+
+4.0  PEMBENTANGAN [TAJUK 1]
+     [Pembentang: nama]
+
+5.0  PEMBENTANGAN [TAJUK 2]
+     [Pembentang: nama]
+
+6.0  HAL-HAL LAIN
+
+7.0  PENUTUP`,
+
+      'Teks Ucapan (Pengetua / GPK / Guru)': `Ucapan WAJIB ikut struktur 5-bahagian:
+
+**TAJUK UCAPAN: [TAJUK PENUH]**
+
+**1. SALUTASI (10-15 saat)**
+Bismillahirrahmanirrahim. Assalamualaikum dan Salam Sejahtera.
+[Salutasi penuh mengikut protokol KPM]
+
+**2. PENDAHULUAN (30-45 saat)**
+- Kata aluan
+- Pengenalan tema/topik
+- Ungkapan terima kasih kepada penganjur
+
+**3. ISI UTAMA (2-3 minit, max 3 poin)**
+**Poin 1: [Tajuk]**
+[Huraian dan contoh konkrit]
+
+**Poin 2: [Tajuk]**
+[Huraian dan contoh konkrit]
+
+**Poin 3: [Tajuk]**
+[Huraian dan contoh konkrit]
+
+**4. SARANAN & PESANAN (30-45 saat)**
+- Call-to-action kepada pendengar
+- Pesanan utama yang ingin diingati
+
+**5. PENUTUP (15-30 saat)**
+- Rumusan ringkas
+- Doa/harapan
+- Salam penutup
+
+**JUMLAH MASA:** 4-5 minit (purata 600-750 perkataan)`
+    };
+
+    function getOutputStructure(objektif) {
+      // Match exactly or partially
+      if (OUTPUT_STRUCTURES[objektif]) return OUTPUT_STRUCTURES[objektif];
+      // Try partial match (handle slight variations)
+      for (const key in OUTPUT_STRUCTURES) {
+        if (objektif.includes(key) || key.includes(objektif)) {
+          return OUTPUT_STRUCTURES[key];
+        }
+      }
+      return null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // FEW-SHOT EXAMPLES — Concrete examples to boost AI consistency
+    // Injected to prompt as <EXAMPLE_OUTPUT> block when toggle ON
+    // ═══════════════════════════════════════════════════════════════
+    const FEW_SHOT_EXAMPLES = {
+      'Formatkan Slide Deck': `Contoh struktur Slide Deck yang dikehendaki (ikut format ini dengan tepat):
+
+═══════════════════════════════════════════════════
+SLIDE 1 — COVER
+═══════════════════════════════════════════════════
+JUDUL: Fotosintesis: Proses Kehidupan Tumbuhan
+SARI KATA: Modul Sains Tingkatan 4 · Bab 3
+KANDUNGAN: [Slide cover - tiada bullet]
+VISUAL CUE: Gambar pokok hijau dengan cahaya matahari menembus daun, fokus pada kloroplas
+SPEAKER NOTES: Mulakan sesi dengan tanya kelas: "Bagaimana tumbuhan dapat makanan?" Buat hook 30 saat dengan visual menarik.
+
+═══════════════════════════════════════════════════
+SLIDE 2 — OBJEKTIF PEMBELAJARAN
+═══════════════════════════════════════════════════
+JUDUL: Apa Yang Akan Anda Belajar
+KANDUNGAN:
+  ▸ Menjelaskan proses fotosintesis dengan tepat
+  ▸ Mengenal pasti faktor yang mempengaruhi kadar
+  ▸ Menganalisis persamaan kimia fotosintesis
+VISUAL CUE: Icon checklist hijau dengan 3 ticks
+SPEAKER NOTES: Jelaskan setiap objektif selama 15 saat. Connect dengan SP DSKP Sains T4 SP 3.1.1-3.1.3.
+
+═══════════════════════════════════════════════════
+SLIDE 3 — KONSEP UTAMA
+═══════════════════════════════════════════════════
+JUDUL: Apakah Fotosintesis?
+KANDUNGAN:
+  ▸ Proses tumbuhan menghasilkan makanan
+  ▸ Bahan: CO₂, Air, Cahaya Matahari
+  ▸ Hasil: Glukosa + Oksigen
+VISUAL CUE: Diagram daun cross-section dengan arrow input dan output
+SPEAKER NOTES: Tunjuk diagram sambil terangkan setiap input. Kuiz pantas: "Tumbuhan tidak boleh berfotosintesis pada waktu malam — betul atau salah?"
+
+═══════════════════════════════════════════════════
+SLIDE 4 — PERSAMAAN KIMIA
+═══════════════════════════════════════════════════
+JUDUL: Persamaan Fotosintesis
+KANDUNGAN:
+  ▸ 6CO₂ + 6H₂O + Cahaya → C₆H₁₂O₆ + 6O₂
+  ▸ Berlaku di kloroplas (klorofil)
+  ▸ Tenaga cahaya → tenaga kimia
+VISUAL CUE: Persamaan kimia besar di tengah dengan animasi tukar warna
+SPEAKER NOTES: Tekankan keseimbangan persamaan. Reminder: klorofil adalah pigmen hijau penting.
+
+═══════════════════════════════════════════════════
+SLIDE 5 — AKTIVITI INTERAKTIF
+═══════════════════════════════════════════════════
+JUDUL: Mari Kita Cuba!
+KANDUNGAN:
+  ▸ Identifikasi 3 faktor yang mempengaruhi kadar
+  ▸ Bincang dengan rakan 2 minit
+  ▸ Kongsikan jawapan di papan
+VISUAL CUE: Icon pelajar bekerjasama, timer 2 minit
+SPEAKER NOTES: Bahagikan kelas kepada kumpulan 4 orang. Pastikan setiap kumpulan ada wakil yang akan kongsi.
+
+═══════════════════════════════════════════════════
+SLIDE 6 — PENUTUP & RUMUSAN
+═══════════════════════════════════════════════════
+JUDUL: Apa Yang Kita Belajar Hari Ini
+KANDUNGAN:
+  ▸ Fotosintesis = makanan tumbuhan
+  ▸ Bahan utama: CO₂, H₂O, cahaya
+  ▸ Hasil: glukosa + oksigen
+VISUAL CUE: Icon ringkasan dengan 3 takeaway points
+SPEAKER NOTES: Buat refleksi 1 minit. Tugasan susulan: lukis diagram fotosintesis sendiri untuk hantar esok.`,
+
+      'Jana Bank Soalan KBAT': `Contoh struktur soalan KBAT (ikut format ini dengan tepat):
+
+**Soalan 1 — Aras Bloom: Aplikasi**
+Cikgu Aishah membeli 3/4 kg gula untuk membuat kek. Dia menggunakan 1/3 daripada gula tersebut untuk lapisan atas kek.
+Berapa kg gula yang masih ada selepas membuat lapisan atas?
+
+A) 1/4 kg
+B) 1/2 kg
+C) 3/8 kg
+D) 1/12 kg
+
+**Jawapan:** B
+**Penyelesaian:** Gula yang digunakan = 1/3 × 3/4 = 3/12 = 1/4 kg. Gula yang tinggal = 3/4 - 1/4 = 3/4 - 1/4 = 2/4 = 1/2 kg.
+**SP DSKP:** SP 1.5.2 — Menambah dan menolak pecahan dengan penyebut berbeza dalam konteks penyelesaian masalah harian.
+
+**Soalan 2 — Aras Bloom: Analisis**
+Sebuah bekas mengandungi 5/6 liter jus. Encik Raman menuang 2/3 daripadanya ke dalam botol-botol kecil. Setiap botol mengandungi 1/9 liter jus.
+Berapa botol yang dapat diisi dan berapa liter jus yang tinggal dalam bekas?
+
+A) 5 botol, 5/18 liter tinggal
+B) 5 botol, 1/6 liter tinggal
+C) 6 botol, 1/18 liter tinggal
+D) 4 botol, 7/18 liter tinggal
+
+**Jawapan:** A
+**Penyelesaian:** Jus yang dituang = 2/3 × 5/6 = 10/18 = 5/9 liter. Bilangan botol = 5/9 ÷ 1/9 = 5 botol. Jus yang tinggal = 5/6 - 5/9 = 15/18 - 10/18 = 5/18 liter.
+**SP DSKP:** SP 1.6.1 — Mendarab dan membahagi pecahan untuk menyelesaikan masalah berbilang langkah.`,
+
+      'Jana Item PBD (Tahap Penguasaan)': `Contoh struktur item PBD (ikut format ini dengan tepat):
+
+**Item 1 — Tahap Penguasaan 3 (Sederhana)**
+**Pernyataan Standard (SP):** SP 3.1.2 — Menerangkan proses fotosintesis melalui eksperimen mudah.
+**Tugasan:** Lukis dan label diagram daun yang menunjukkan proses fotosintesis. Sertakan label untuk: kloroplas, stomata, vein, dan arah pergerakan CO₂, H₂O, glukosa, O₂.
+**Konteks:** Anda diberi sehelai kertas A4 dan pensel warna. Diagram mesti dilukis sendiri (tidak boleh trace).
+**Kriteria Pencapaian:**
+  ▸ TP 1 (Belum Capai): Lukis daun tanpa label / label kurang dari 3 betul
+  ▸ TP 2-3 (Sederhana): Diagram betul dengan 4-5 label betul, beberapa arah pergerakan ditunjuk
+  ▸ TP 4-5 (Baik): Diagram lengkap dengan 6-7 label betul, semua arah pergerakan jelas
+  ▸ TP 6 (Cemerlang): Diagram sangat terperinci dengan 8+ label betul, sertakan persamaan kimia ringkas
+**Bukti Pencapaian:** Lukisan dikumpul dan dinilai mengikut rubrik. Guru tanda guna check-list 4 kriteria utama.
+
+**Item 2 — Tahap Penguasaan 4 (Baik)**
+**Pernyataan Standard (SP):** SP 3.1.3 — Menganalisis faktor yang mempengaruhi kadar fotosintesis.
+**Tugasan:** Reka satu eksperimen untuk menguji bagaimana intensiti cahaya mempengaruhi kadar fotosintesis. Tulis hipotesis, prosedur (4-6 langkah), pemboleh ubah (manipulasi, bergerak balas, dimalarkan), dan jangkaan keputusan.
+**Konteks:** Anda boleh guna bahan biasa di makmal sekolah (lampu meja, gelas piala, tumbuhan air seperti Elodea).
+**Kriteria Pencapaian:**
+  ▸ TP 1: Hipotesis sahaja
+  ▸ TP 2-3: Hipotesis + prosedur ringkas (2-3 langkah)
+  ▸ TP 4-5: Hipotesis + prosedur lengkap + 2-3 pemboleh ubah dikenal pasti
+  ▸ TP 6: Eksperimen lengkap + analisis pemboleh ubah lengkap + jangkaan dengan justifikasi
+**Bukti Pencapaian:** Folio kerja kursus dengan rubrik 4-aras.`,
+
+      'Bina Aktiviti Didik Hibur': `Contoh struktur aktiviti Didik Hibur (ikut format ini dengan tepat):
+
+**Aktiviti 1: "Pertandingan Cipta Lagu Tabik Hormat"**
+**Masa:** 25-30 minit
+**Bahan:**
+  ▸ Kad tema (5 tema: keluarga, sekolah, alam, makanan, perayaan)
+  ▸ Bekas/kotak undi
+  ▸ Senarai 10 perkataan target dari topik
+  ▸ Pembesar suara (opsyen)
+**Persediaan Guru:**
+  ▸ Sediakan kad tema dan masukkan dalam bekas
+  ▸ Bahagikan kelas kepada 4-5 kumpulan (4-5 orang setiap kumpulan)
+  ▸ Tulis perkataan target di papan
+**Langkah Pelaksanaan:**
+  1. Setiap kumpulan undi 1 kad tema (2 minit)
+  2. Kumpulan berbincang dan cipta lirik lagu 4-8 baris yang mengandungi 5 perkataan target (10 minit)
+  3. Setiap kumpulan persembahkan lagu mereka dengan irama (3 minit setiap satu)
+  4. Penonton beri tepukan + komen ringkas (1 minit selepas setiap persembahan)
+  5. Guru beri rumusan dan kongsi konsep linguistik yang terhasil (3 minit)
+**Outcome/Pembelajaran:**
+  ▸ Murid mengaplikasikan kosa kata baru dalam konteks kreatif
+  ▸ Berlatih kolaborasi dan kreativiti
+  ▸ Membina keyakinan dalam persembahan lisan
+**Variasi:**
+  ▸ Tahap rendah: Beri rangka lirik yang perlu diisi
+  ▸ Tahap tinggi: Tambah kekangan (mesti ada metafora, rima abab)
+**Penilaian:** Rubrik 3-kriteria (penggunaan perkataan target, kreativiti, persembahan) — 1-4 skala.`,
+
+      'Bina Rubrik Pemarkahan': `Contoh rubrik karangan BM Tingkatan 3 (ikut format ini dengan tepat):
+
+**RUBRIK PENILAIAN KARANGAN NARATIF — TINGKATAN 3**
+
+| Kriteria | Pemberat | TP 1 (Belum Capai) | TP 2-3 (Sederhana) | TP 4-5 (Baik) | TP 6 (Cemerlang) |
+|----------|----------|---------------------|---------------------|----------------|-------------------|
+| **Isi & Idea** | 30% | Idea tidak relevan dengan tema; kurang dari 3 isi utama | 3-4 isi utama dengan sedikit huraian; sebahagian relevan | 5-6 isi utama dengan huraian yang baik; semuanya relevan | 6+ isi utama dengan huraian mendalam, contoh konkrit, dan justifikasi |
+| **Pengolahan** | 25% | Susunan tidak teratur; tiada pendahuluan/penutup yang jelas | Ada struktur asas (pendahuluan-isi-penutup); peralihan kurang lancar | Susunan teratur; ada peralihan antara perenggan; pendahuluan & penutup berkesan | Struktur sangat berkesan; peralihan amat lancar; pendahuluan hook & penutup berkesan |
+| **Bahasa** | 25% | Banyak kesalahan tatabahasa; kosa kata terhad; ayat berulang | Kesalahan minimum; kosa kata mencukupi; sedikit variasi ayat | Tatabahasa baik; kosa kata pelbagai; variasi ayat baik | Tatabahasa hampir sempurna; kosa kata kaya & tepat; variasi ayat sangat baik |
+| **Gaya & Daya Tarikan** | 20% | Penulisan kering; tiada peribahasa/kiasan | Sedikit elemen gaya (1-2 peribahasa) | Penggunaan peribahasa & kiasan yang sesuai (3-4 contoh) | Gaya bahasa kreatif; peribahasa, kiasan, & teknik retorik digunakan dengan mahir |
+
+**Jumlah Pemberat:** 100%
+**Skala Markah:** TP 1 (0-29%) · TP 2-3 (30-49%) · TP 4-5 (50-79%) · TP 6 (80-100%)
+
+**Nota Penggunaan:**
+- Guru tanda setiap kriteria secara berasingan menggunakan deskriptor di atas
+- Markah akhir = jumlah (peratus × pemberat) setiap kriteria
+- Sertakan komen kualitatif untuk maklum balas konstruktif kepada murid`
+    };
+
+    function getFewShotExample(objektif) {
+      if (FEW_SHOT_EXAMPLES[objektif]) return FEW_SHOT_EXAMPLES[objektif];
+      for (const key in FEW_SHOT_EXAMPLES) {
+        if (objektif.includes(key) || key.includes(objektif)) {
+          return FEW_SHOT_EXAMPLES[key];
+        }
+      }
+      return null;
+    }
+
     // Default pedagogi list — overridable from Google Sheet (column: "Nama")
     let PEDAGOGI_LIST = [
       'Umum',
@@ -1399,6 +2673,433 @@
       'BI': 'Use professional English throughout, aligned with Malaysian education context and MOE terminology.',
       'Dwibahasa': 'Sediakan dalam dwibahasa: Bahasa Melayu sebagai teks utama, dengan terjemahan Bahasa Inggeris di bawah setiap bahagian utama (atau dalam kurungan untuk istilah teknikal).'
     };
+
+    // ============ AI IMAGE TARGETS (v3.8) ============
+    // Setiap AI ada prompt syntax tersendiri. buildImagePrompt() & buildKadUcapanPrompt()
+    // branch ikut state.aiTarget. Lihat bahagian builders untuk implementation.
+    const AI_TARGETS = [
+      {
+        id: 'gemini',
+        label: 'Google Gemini',
+        emoji: '✨',
+        badge: 'PERCUMA',
+        url: 'https://gemini.google.com',
+        hint: 'Render teks BM/Jawi terbaik · Percuma di gemini.google.com · Sokong sehingga 14 imej rujukan',
+        // Prompt characteristics
+        promptStyle: 'natural-paragraph',
+        aspectFormat: 'sentence',      // "Aspect ratio 4:5" within sentence
+        negativeKeyword: 'Avoid',
+        qualitySuffix: 'photorealistic, sharp focus, 4K detail',
+        usageSteps: [
+          'Buka gemini.google.com (log masuk Google Account)',
+          'Tampal prompt di kotak chat',
+          'Klik butang imej (🖼️) atau taip "buatkan imej"',
+          'Tunggu Gemini render — boleh upload foto rujukan untuk personalisasi'
+        ]
+      },
+      {
+        id: 'chatgpt',
+        label: 'ChatGPT (GPT Image)',
+        emoji: '💬',
+        badge: 'Free tier · $20/bln Plus',
+        url: 'https://chatgpt.com',
+        hint: 'Conversational refinement · Klik "Select area" untuk edit sebahagian imej',
+        promptStyle: 'short-sentences',
+        aspectFormat: 'orientation',   // "vertical 9:16"
+        negativeKeyword: 'Without',
+        qualitySuffix: 'high quality, detailed, professional photography',
+        usageSteps: [
+          'Buka chatgpt.com (free tier ada limit imej harian)',
+          'Tampal prompt di kotak chat',
+          'ChatGPT auto-detect intent imej dan generate',
+          'Boleh teruskan refine dengan instruksi natural ("buatkan lebih cerah", dll.)'
+        ]
+      },
+      {
+        id: 'copilot',
+        label: 'Microsoft Copilot',
+        emoji: '🟦',
+        badge: '100% PERCUMA',
+        url: 'https://www.bing.com/create',
+        hint: '15 imej fast generation percuma/hari · Microsoft Account sahaja · Akses paling mudah',
+        promptStyle: 'short-sentences',
+        aspectFormat: 'orientation-natural',  // "vertical / horizontal / square"
+        negativeKeyword: 'Do not include',
+        qualitySuffix: 'photorealistic, warm and inviting',
+        usageSteps: [
+          'Buka bing.com/create (log masuk Microsoft Account)',
+          'Tampal prompt di kotak "Create"',
+          'Copilot/Bing akan jana 4 variasi imej',
+          'Resolusi tetap 1024×1024 — sesuai post media sosial'
+        ]
+      },
+      {
+        id: 'midjourney',
+        label: 'Midjourney',
+        emoji: '🎨',
+        badge: '$10+/bulan',
+        url: 'https://www.midjourney.com',
+        hint: 'Kualiti seni terbaik · Text rendering lemah — overlay teks di Canva selepas generate',
+        promptStyle: 'tag-with-parameters',
+        aspectFormat: 'flag',           // --ar 4:5
+        negativeKeyword: '--no',
+        qualitySuffix: '--style raw --s 250',
+        version: '--v 8.1',
+        usageSteps: [
+          'Daftar di midjourney.com (subscription dari $10/bulan)',
+          'Akses via web app atau Discord (`/imagine`)',
+          'Tampal prompt — parameters (--ar, --v, --no) WAJIB di hujung',
+          'Untuk teks kad ucapan, overlay manually di Canva — Midjourney text rendering masih lemah'
+        ]
+      }
+    ];
+
+    // ============ KAD UCAPAN — PERAYAAN LIBRARY (v3.8) ============
+    // 24 perayaan/sambutan utama di Malaysia + event sekolah.
+    // Setiap entry mengandungi visual cues yang detailed untuk AI guide.
+    const PERAYAAN_LIBRARY = [
+      // ─── Agama Islam (6) ───
+      {
+        id: 'aidilfitri', label: 'Hari Raya Aidilfitri', emoji: '🌙', kategori: 'islam',
+        bgCues: 'modern Malay kampung house exterior at golden hour with carved wooden window frames, crescent moon decorations, colorful pelita (oil lamps) hanging on the porch, traditional ornaments',
+        symbols: 'ketupat made of woven palm leaves, lemang in bamboo, baju kurung and baju Melayu with songkok, kuih raya cookies on table, traditional carpets',
+        palette: 'emerald green, gold accents, warm cream, soft sunset tones',
+        greetingMs: 'Selamat Hari Raya Aidilfitri, Maaf Zahir dan Batin',
+        greetingEn: 'Eid Mubarak — Peace and Forgiveness',
+        mood: 'joyful family reunion, gratitude, forgiveness, warmth',
+        cautions: 'modest Islamic attire, hijab/tudung for women, respectful presentation'
+      },
+      {
+        id: 'aidiladha', label: 'Hari Raya Aidiladha (Qurban)', emoji: '🕌', kategori: 'islam',
+        bgCues: 'majestic mosque silhouette at dawn with crescent moon, palm trees, Hajj pilgrimage imagery in background, Kaaba subtle reference',
+        symbols: 'prayer mat, tasbih beads, traditional Islamic geometric patterns, ihram white cloth, modest celebration',
+        palette: 'deep teal, gold, ivory white, soft sky blue',
+        greetingMs: 'Selamat Hari Raya Aidiladha · Salam Korban',
+        greetingEn: 'Eid al-Adha Mubarak',
+        mood: 'spiritual reflection, sacrifice, devotion, communal worship',
+        cautions: 'avoid depicting animal slaughter; focus on spiritual symbolism'
+      },
+      {
+        id: 'awal-muharam', label: 'Awal Muharam (Maal Hijrah)', emoji: '🌟', kategori: 'islam',
+        bgCues: 'Islamic calligraphy backdrop with arabesque patterns, starry night sky transitioning to dawn, mosque silhouette',
+        symbols: 'Arabic calligraphy "1448H" or Hijrah year, traditional Islamic geometric art, lanterns',
+        palette: 'midnight blue, gold, white',
+        greetingMs: 'Selamat Tahun Baru Hijrah 1448H · Salam Maal Hijrah',
+        greetingEn: 'Happy Islamic New Year 1448H',
+        mood: 'reflective, renewal, spiritual journey',
+        cautions: 'respectful Islamic iconography only'
+      },
+      {
+        id: 'maulidur-rasul', label: 'Maulidur Rasul', emoji: '🌹', kategori: 'islam',
+        bgCues: 'softly lit mosque interior with Islamic calligraphy on walls, fresh roses and flowers in vases, warm candlelight',
+        symbols: 'Arabic calligraphy of "Muhammad ﷺ" (use respectful typography only — no figural depiction), open Quran on stand, prayer beads, rose petals',
+        palette: 'rose pink, soft gold, ivory, sage green',
+        greetingMs: 'Selamat Menyambut Maulidur Rasul · Selawat ke atas Junjungan',
+        greetingEn: 'Mawlid an-Nabi Mubarak',
+        mood: 'reverent, peaceful, devotional',
+        cautions: 'NEVER depict the Prophet Muhammad ﷺ figuratively — use only calligraphy, abstract symbols, or empty seat metaphor'
+      },
+      {
+        id: 'awal-ramadan', label: 'Salam Ramadan', emoji: '🕋', kategori: 'islam',
+        bgCues: 'twilight sky transitioning to night with crescent moon and stars, traditional lantern (fanous) glowing warmly, mosque silhouette in distance',
+        symbols: 'glowing fanous lantern, dates on plate, prayer mat, glass of water, simple iftar table setup',
+        palette: 'royal purple, deep blue, warm amber glow, gold',
+        greetingMs: 'Salam Ramadan al-Mubarak · Selamat Menyambut Bulan Ramadan',
+        greetingEn: 'Ramadan Mubarak — Blessed Ramadan',
+        mood: 'serene, anticipatory, spiritual preparation',
+        cautions: 'modest Muslim representation; food imagery should be modest iftar items'
+      },
+      {
+        id: 'nuzul-quran', label: 'Nuzul Al-Quran', emoji: '📖', kategori: 'islam',
+        bgCues: 'beautifully calligraphied Quran open on traditional wooden rehal stand, soft beam of light from above suggesting divine revelation, peaceful mosque interior',
+        symbols: 'open Quran with visible Arabic calligraphy, rehal stand, prayer beads, soft light rays',
+        palette: 'deep navy, gold leaf, cream, soft white',
+        greetingMs: 'Selamat Menyambut Nuzul Al-Quran',
+        greetingEn: 'Nuzul al-Quran — Commemorating the Revelation',
+        mood: 'reverent, scholarly, illuminated',
+        cautions: 'respectful Quranic imagery only; Arabic text must be calligraphic art style'
+      },
+      // ─── Agama Lain (5) ───
+      {
+        id: 'tahun-baru-cina', label: 'Tahun Baru Cina', emoji: '🧧', kategori: 'cina',
+        bgCues: 'traditional Chinese courtyard with red lanterns strung overhead at golden hour, plum blossom branches, calligraphy scrolls, Year of the Horse motif',
+        symbols: 'red lanterns, ang pao (red packets), gold coins, mandarin oranges, fai chun (red couplets), dragon and lion dance imagery, fireworks',
+        palette: 'auspicious red, gold, deep crimson, warm amber',
+        greetingMs: 'Selamat Tahun Baru Cina · Gong Xi Fa Cai',
+        greetingEn: 'Happy Lunar New Year · Gong Xi Fa Cai',
+        mood: 'festive prosperity, family unity, joyful celebration',
+        cautions: 'authentic Chinese cultural representation — Chinese Malaysian context preferred'
+      },
+      {
+        id: 'deepavali', label: 'Deepavali', emoji: '🪔', kategori: 'hindu',
+        bgCues: 'traditional Indian home entrance with intricate rangoli/kolam patterns drawn in colored powder on the floor, rows of small clay oil lamps (diyas) glowing warmly, golden marigold garlands',
+        symbols: 'clay diyas with flames, intricate rangoli/kolam designs, marigold flowers, peacock motifs, traditional sari and dhoti, sweets like ladoo',
+        palette: 'gold, deep red, royal purple, marigold orange, warm amber',
+        greetingMs: 'Selamat Hari Deepavali · Salam Kemilau Cahaya',
+        greetingEn: 'Happy Deepavali — Festival of Lights',
+        mood: 'luminous celebration, victory of light over darkness, family joy',
+        cautions: 'authentic Indian Malaysian Hindu cultural representation'
+      },
+      {
+        id: 'wesak', label: 'Hari Wesak', emoji: '🪷', kategori: 'buddha',
+        bgCues: 'serene Buddhist temple courtyard at dawn with lotus pond, fresh lotus flowers in bloom, prayer flags in soft colors, peaceful golden sunrise',
+        symbols: 'lotus flowers (white and pink), Buddha imagery (silhouette or back view, respectful), prayer flags, candles, incense, bo tree leaves',
+        palette: 'serene saffron yellow, soft pink lotus, sage green, gold',
+        greetingMs: 'Selamat Hari Wesak · Salam Damai',
+        greetingEn: 'Happy Wesak Day — Day of Peace',
+        mood: 'peaceful contemplation, mindfulness, compassion',
+        cautions: 'respectful Buddha imagery — silhouette or back view preferred over direct face'
+      },
+      {
+        id: 'thaipusam', label: 'Thaipusam', emoji: '🌺', kategori: 'hindu',
+        bgCues: 'majestic Batu Caves limestone hill backdrop with golden Murugan statue silhouette, devotional procession scene, vibrant temple atmosphere',
+        symbols: 'kavadi (ornate ceremonial structure) with peacock feathers, milk pots (paal kudam), saffron robes, sacred ash, peacock motifs (Murugan vahana)',
+        palette: 'saffron orange, deep red, gold, peacock teal',
+        greetingMs: 'Selamat Hari Thaipusam',
+        greetingEn: 'Happy Thaipusam — Day of Devotion',
+        mood: 'devotional reverence, spiritual sacrifice, communal pilgrimage',
+        cautions: 'respectful representation of Hindu Tamil devotional practice; avoid focusing on body-piercing aspects'
+      },
+      {
+        id: 'krismas', label: 'Hari Krismas', emoji: '🎄', kategori: 'kristian',
+        bgCues: 'tropical Malaysian Christmas scene — warm living room with decorated Christmas tree, fairy lights, gifts wrapped under tree, family gathering, NO snow (it is Malaysia after all!)',
+        symbols: 'Christmas tree with ornaments, fairy lights, baubles, gift boxes with ribbons, holly leaves, nativity scene (subtle), Santa hat',
+        palette: 'classic red and green, gold accents, warm white lights',
+        greetingMs: 'Selamat Hari Krismas · Salam Sejahtera',
+        greetingEn: 'Merry Christmas · Season\'s Greetings',
+        mood: 'warm family togetherness, joyful celebration, festive cheer',
+        cautions: 'tropical/Malaysian context — NO snow scenes; inclusive multicultural family acceptable'
+      },
+      // ─── Kebangsaan / Negara (5) ───
+      {
+        id: 'tahun-baru-masihi', label: 'Tahun Baru Masihi', emoji: '🎊', kategori: 'kebangsaan',
+        bgCues: 'midnight sky over Malaysian skyline (KL Tower or Petronas Twin Towers silhouette) with elegant fireworks bursting in patterns, "2026" or year number glowing softly',
+        symbols: 'fireworks, sparklers, champagne glasses (or non-alcoholic equivalent like teh tarik), countdown clock, confetti, balloons, "2026" numerals',
+        palette: 'midnight blue, gold sparkle, silver, festive purple accents',
+        greetingMs: 'Selamat Tahun Baru · Salam Sejahtera',
+        greetingEn: 'Happy New Year · Best Wishes',
+        mood: 'hopeful, celebratory, fresh start, optimistic',
+        cautions: 'family-friendly imagery; avoid alcohol-prominent scenes for Muslim audience'
+      },
+      {
+        id: 'merdeka', label: 'Hari Kebangsaan (Merdeka)', emoji: '🇲🇾', kategori: 'kebangsaan',
+        bgCues: 'iconic Malaysian landmarks (Dataran Merdeka with Sultan Abdul Samad Building, Petronas Twin Towers, or KLCC) waving with Jalur Gemilang flags, patriotic atmosphere',
+        symbols: 'Jalur Gemilang (Malaysian flag) prominently displayed, "Merdeka!" text, hands raised in salute, multiracial Malaysians together, hibiscus (national flower)',
+        palette: 'national colors — red, white, blue, yellow harmoniously combined',
+        greetingMs: 'Selamat Hari Kebangsaan · Merdeka! Merdeka! Merdeka!',
+        greetingEn: 'Happy National Day Malaysia · Merdeka!',
+        mood: 'patriotic pride, national unity, celebratory',
+        cautions: 'authentic Malaysian multiracial representation (Malay, Chinese, Indian, indigenous together)'
+      },
+      {
+        id: 'hari-malaysia', label: 'Hari Malaysia', emoji: '🇲🇾', kategori: 'kebangsaan',
+        bgCues: 'panoramic Malaysian scene blending Peninsular, Sabah and Sarawak iconography — KL skyline, Mount Kinabalu, Sarawak longhouse together in harmonious composition',
+        symbols: 'Jalur Gemilang, multiracial diversity (including indigenous Sabah/Sarawak peoples), traditional costumes from all states, hibiscus flower',
+        palette: 'unified red, white, blue, yellow national palette plus earthy tones for Borneo',
+        greetingMs: 'Selamat Hari Malaysia · Bersatu Teguh',
+        greetingEn: 'Happy Malaysia Day · United We Stand',
+        mood: 'unity in diversity, national pride, inclusive celebration',
+        cautions: 'must include Sabah/Sarawak representation alongside Peninsular Malaysia'
+      },
+      {
+        id: 'ydpa', label: 'Hari Keputeraan YDPA', emoji: '👑', kategori: 'kebangsaan',
+        bgCues: 'royal Malaysian palace (Istana Negara) backdrop with golden ceremonial elements, traditional royal regalia, formal patriotic atmosphere',
+        symbols: 'royal crown, royal seal, traditional Malay royal songkok and baju Melayu, Jalur Gemilang and royal standard, formal palace gates',
+        palette: 'royal yellow (Daulat Tuanku gold), deep red, white, royal blue',
+        greetingMs: 'Daulat Tuanku · Salam Keputeraan Yang di-Pertuan Agong',
+        greetingEn: 'Long Live Our King · Happy Royal Birthday',
+        mood: 'reverent, formal, patriotic loyalty',
+        cautions: 'maintain respectful royal protocol; no caricature of royal figures'
+      },
+      {
+        id: 'hari-pekerja', label: 'Hari Pekerja', emoji: '👷', kategori: 'kebangsaan',
+        bgCues: 'diverse Malaysian workers in uniform from various sectors (teacher, nurse, engineer, farmer, factory worker, office worker) standing united, sunrise lighting',
+        symbols: 'tools of various trades, hard hats, stethoscope, books, laptops, agricultural tools, "Pekerja KESUMA Bangsa" theme',
+        palette: 'professional blue, gold, warm sunrise orange',
+        greetingMs: 'Selamat Hari Pekerja · Penghargaan untuk Semua Warga Kerja',
+        greetingEn: 'Happy Labour Day · Honoring All Workers',
+        mood: 'respectful appreciation, dignity of labor, communal solidarity',
+        cautions: 'inclusive representation across genders, races, and sectors'
+      },
+      // ─── Etnik / Regional (2) ───
+      {
+        id: 'kaamatan', label: 'Pesta Kaamatan', emoji: '🌾', kategori: 'sabah',
+        bgCues: 'lush Sabah rice paddy fields with Mount Kinabalu in background at golden hour, traditional Kadazan-Dusun longhouse, harvest celebration',
+        symbols: 'Unduk Ngadau (harvest queen) traditional Kadazan-Dusun costume with sigah headdress, golden rice stalks, sompoton musical instrument, traditional gongs',
+        palette: 'golden rice yellow, earthy brown, traditional black and silver Kadazan costume colors',
+        greetingMs: 'Kotobian Tadau Tagazo Do Kaamatan · Selamat Hari Pesta Kaamatan',
+        greetingEn: 'Happy Kaamatan Harvest Festival',
+        mood: 'harvest gratitude, cultural pride, communal celebration',
+        cautions: 'authentic Kadazan-Dusun representation; specifically for Sabah/Labuan context'
+      },
+      {
+        id: 'gawai', label: 'Hari Gawai Dayak', emoji: '🪶', kategori: 'sarawak',
+        bgCues: 'traditional Iban/Bidayuh longhouse exterior with cultural decorations, lush Sarawak rainforest backdrop, harvest celebration scene',
+        symbols: 'traditional Iban warrior attire with rattan headdress and feathers, hornbill bird motif, tuak (rice wine) bamboo cups, traditional shields and weaponry as cultural decor, parang ilang',
+        palette: 'forest green, earthy red, traditional black and silver patterns, golden harvest tones',
+        greetingMs: 'Selamat Hari Gawai Dayak · Gayu Guru Gerai Nyamai',
+        greetingEn: 'Happy Gawai Dayak — Sarawak Harvest Festival',
+        mood: 'cultural pride, harvest celebration, communal feast',
+        cautions: 'authentic Dayak (Iban/Bidayuh/Orang Ulu) representation; specifically for Sarawak context'
+      },
+      // ─── Pendidikan / Sekolah (6) ───
+      {
+        id: 'hari-guru', label: 'Hari Guru', emoji: '🍎', kategori: 'sekolah',
+        bgCues: 'modern Malaysian classroom with teacher standing warmly in front of green chalkboard or smartboard, students smiling, books and stationery on desks, sunlight streaming through windows',
+        symbols: 'apple on desk, books, stationery, chalkboard with handwritten thank-you message, students gifting flowers or cards to teacher, "Guru Sebagai Pembina Negara Bangsa" theme',
+        palette: 'fresh green, warm yellow, sky blue, classroom natural light',
+        greetingMs: 'Selamat Hari Guru · Penghargaan untuk Cikgu',
+        greetingEn: 'Happy Teachers\' Day · Honoring Our Educators',
+        mood: 'gratitude, respect, warmth, inspirational',
+        cautions: 'inclusive teacher representation (gender, race); students appropriately dressed in Malaysian school uniforms'
+      },
+      {
+        id: 'anugerah-cemerlang', label: 'Hari Anugerah Cemerlang', emoji: '🏆', kategori: 'sekolah',
+        bgCues: 'school auditorium or dewan with stage prepared for award ceremony, decorative ribbons, students in formal school uniform on stage receiving trophies',
+        symbols: 'golden trophies, medals, certificates with ribbons, "Cemerlang!" banner, student in academic robe (for higher achievement), confetti',
+        palette: 'gold, royal blue, deep red ceremonial accents',
+        greetingMs: 'Tahniah! · Anugerah Cemerlang · Bertemankan Kejayaan',
+        greetingEn: 'Congratulations! · Excellence Award',
+        mood: 'celebratory pride, achievement recognition, inspirational',
+        cautions: 'inclusive student representation; emphasis on diverse types of excellence (academic, sports, co-curricular)'
+      },
+      {
+        id: 'hari-sukan', label: 'Sambutan Hari Sukan', emoji: '🏅', kategori: 'sekolah',
+        bgCues: 'school sports field (padang sekolah) with track and field events, students in sports attire competing, scoreboard, parents and teachers cheering from sidelines, blue sky',
+        symbols: 'running track, sports equipment (football, badminton racket, baton), house team colors (merah/biru/hijau/kuning), medals, trophies, mascot',
+        palette: 'vibrant house team colors (red/blue/green/yellow), sunny sky blue, energetic green',
+        greetingMs: 'Selamat Menyambut Hari Sukan · Sukan Membina Sahsiah',
+        greetingEn: 'Happy Sports Day · Sports Build Character',
+        mood: 'energetic excitement, healthy competition, school spirit',
+        cautions: 'inclusive participation across genders and abilities'
+      },
+      {
+        id: 'persaraan', label: 'Persaraan / Penghormatan', emoji: '🙏', kategori: 'sekolah',
+        bgCues: 'warm appreciative gathering scene — staff room or assembly hall with colleagues presenting retirement bouquet and card to retiring teacher, framed memories displayed',
+        symbols: 'bouquet of flowers, gift box, framed certificate of appreciation, sentimental photo collage of teaching career, traditional handshake or salam, formal attire',
+        palette: 'warm gold, sage green, soft cream, dignified deep blue',
+        greetingMs: 'Selamat Bersara · Terima Kasih atas Khidmat Bakti',
+        greetingEn: 'Happy Retirement · Thank You for Your Service',
+        mood: 'grateful respect, dignified farewell, warmth',
+        cautions: 'dignified portrayal; show respect for years of service'
+      },
+      {
+        id: 'tamat-persekolahan', label: 'Hari Akhir Persekolahan', emoji: '🎓',  kategori: 'sekolah',
+        bgCues: 'school compound at end of school year with students celebrating, signing yearbooks, group photo arrangement, throwing graduation caps in air (for upper secondary), warm late afternoon light',
+        symbols: 'graduation caps, school yearbooks being signed, student backpacks, school uniform, balloons, "Selamat Bercuti" banner',
+        palette: 'warm sunset orange, school uniform white and blue, celebratory pastel accents',
+        greetingMs: 'Selamat Bercuti · Sampai Jumpa Tahun Depan',
+        greetingEn: 'Happy Holidays · See You Next Year',
+        mood: 'bittersweet celebration, friendship, anticipation of break',
+        cautions: 'school uniform appropriate to Malaysian standard; inclusive student representation'
+      },
+      {
+        id: 'hari-lahir-pelajar', label: 'Hari Lahir Pelajar', emoji: '🎂', kategori: 'sekolah',
+        bgCues: 'cheerful classroom or school hall with birthday celebration setup, balloons and streamers, birthday cake on table, classmates singing around the birthday student',
+        symbols: 'birthday cake with candles, balloons, party hats (modest), gift boxes, "Selamat Hari Lahir" banner, school uniform on birthday student',
+        palette: 'cheerful rainbow colors, pastel pink and blue, celebratory gold',
+        greetingMs: 'Selamat Hari Lahir · Semoga Berjaya Selalu',
+        greetingEn: 'Happy Birthday · Wishing You Success',
+        mood: 'cheerful, age-appropriate fun, friendship',
+        cautions: 'age-appropriate celebration; school uniform; inclusive classmate representation'
+      }
+    ];
+
+    const TEMA_KAD = [
+      { id: 'tradisional', label: 'Tradisional', emoji: '🏛️', kw: 'traditional cultural composition with heritage motifs and ornamental details' },
+      { id: 'moden', label: 'Moden Minimalist', emoji: '✨', kw: 'modern minimalist composition with clean typography and ample white space, contemporary design' },
+      { id: 'kanak-kanak', label: 'Ceria Kanak-Kanak', emoji: '🎈', kw: 'cheerful children-friendly composition with bright colors, rounded shapes, playful elements' },
+      { id: 'elegan', label: 'Elegan Korporat', emoji: '💼', kw: 'elegant corporate composition with sophisticated typography, refined color palette, professional layout' },
+      { id: 'tipografi', label: 'Tipografi Berat', emoji: '🔤', kw: 'typography-driven composition where bold expressive lettering is the main focal point, with supporting visuals' }
+    ];
+
+    const WATAK_KAD = [
+      { id: 'tiada', label: 'Tiada watak (visual sahaja)', count: 0, desc: 'no human subjects — focus on cultural symbols and decorative elements only' },
+      { id: 'sendiri', label: 'Sendiri (1 orang)', count: 1, desc: 'single subject portrait composition, solo person in scene' },
+      { id: 'pasangan', label: 'Pasangan (2 orang)', count: 2, desc: 'two subjects together, warm interaction, balanced composition' },
+      { id: 'keluarga', label: 'Keluarga (3-5 orang)', count: 4, desc: 'family group composition with parents and children, warm familial interaction' },
+      { id: 'rakan', label: 'Rakan / Kelas (5+ orang)', count: 6, desc: 'group of friends or classmates, communal celebration, multiple subjects' }
+    ];
+
+    // ============ NOTEBOOKLM SUB-MODES (v3.8) ============
+    // NotebookLM Studio ada multiple output types, each dengan customize options spesifik.
+    // Sumber: support.google.com/notebooklm (Mei 2026)
+    const NOTEBOOKLM_SUBMODES = [
+      {
+        id: 'slide-deck',
+        label: 'Slide Deck',
+        emoji: '📊',
+        desc: 'Persembahan visual dari sumber yang dimuat naik',
+        // Customize options yang ada dalam NotebookLM panel:
+        formats: [
+          { id: 'detailed', label: 'Detailed Deck (komprehensif, untuk dibaca sendiri)' },
+          { id: 'presenter', label: 'Presenter Slides (ringkas, untuk presentation)' }
+        ],
+        lengths: [
+          { id: 'short', label: 'Pendek' },
+          { id: 'default', label: 'Default' },
+          { id: 'long', label: 'Panjang' }
+        ],
+        hasVisualStyle: false,
+        hasVibe: true,  // PintarAI vibe selector relevant for design style
+        customizeBoxLimit: 500,
+        note: 'Dijana guna model imej Nano Banana. Slide tak boleh edit secara individual selepas generate — guna butang "revise" per slide.'
+      },
+      {
+        id: 'audio-overview',
+        label: 'Audio Overview',
+        emoji: '🎧',
+        desc: 'Perbincangan podcast antara 2 AI hosts',
+        formats: [
+          { id: 'deep-dive', label: 'Deep Dive (perbincangan mendalam)' },
+          { id: 'brief', label: 'Brief (ringkasan padat)' },
+          { id: 'debate', label: 'Debate (perdebatan dua pendapat)' },
+          { id: 'critique', label: 'Critique (analisis kritis)' }
+        ],
+        lengths: [
+          { id: 'short', label: 'Pendek (~5 minit)' },
+          { id: 'default', label: 'Default (~10-15 minit)' },
+          { id: 'long', label: 'Panjang (~20+ minit)' }
+        ],
+        hasVisualStyle: false,
+        hasVibe: false,
+        customizeBoxLimit: 500,
+        note: 'AI hosts (2 orang) akan bincangkan dalam gaya conversational. Boleh "Interactive mode" untuk sertai perbincangan live.'
+      },
+      {
+        id: 'video-overview',
+        label: 'Video Overview',
+        emoji: '🎬',
+        desc: 'Naratif video dengan visual dari sumber',
+        formats: [
+          { id: 'explainer', label: 'Explainer (penerangan lengkap)' },
+          { id: 'brief', label: 'Brief (ringkasan padat)' }
+        ],
+        lengths: null,  // tiada length option dalam NotebookLM Video Overview
+        hasVisualStyle: true,
+        visualStyles: [
+          { id: 'whiteboard', label: 'Whiteboard (papan putih)' },
+          { id: 'kawaii', label: 'Kawaii (ceria comel)' },
+          { id: 'watercolor', label: 'Watercolor (cat air)' },
+          { id: 'classic', label: 'Classic (klasik)' }
+        ],
+        hasVibe: false,
+        customizeBoxLimit: 500,
+        note: 'Output adalah video dengan visual + narasi. Tak boleh edit visual selepas generate.'
+      },
+      {
+        id: 'mind-map',
+        label: 'Mind Map',
+        emoji: '🧠',
+        desc: 'Diagram visual hierarki konsep',
+        formats: null,
+        lengths: null,
+        hasVisualStyle: false,
+        hasVibe: false,
+        customizeBoxLimit: 0,  // NotebookLM Mind Map TAK terima custom prompt
+        note: '⚠️ NotebookLM Mind Map tak terima custom prompt — terus jana dari sumber. Prompt yang PintarAI jana adalah cadangan untuk Hafiz susun sumber upload dengan struktur jelas (H1/H2/H3 heading) supaya output Mind Map lebih kemas.'
+      }
+    ];
 
     // ============ IMAGE GENERATION DATA ============
     const IMAGE_STYLES = [
@@ -1536,8 +3237,35 @@
         lblBahasa: 'Bahasa Output',
         cotTitle: 'Gunakan Logik Analisis Langkah-demi-Langkah',
         cotHelper: 'Chain-of-Thought (C.o.T) — AI akan menaakul sebelum menjawab untuk output lebih tepat.',
+        fewShotTitle: '📚 Sertakan Contoh Output (Few-Shot)',
+        fewShotHelper: 'Aktifkan untuk sertakan 1 contoh output siap dalam prompt. Meningkatkan konsistensi format AI ~30-40%. Tersedia untuk: Slide Deck, Bank Soalan KBAT, Item PBD, Aktiviti Didik Hibur, Bina Rubrik.',
+        autoRujukanLabel: '🔖 Auto-Rujukan',
+        quantityNote: '⚠️ <strong>Nota:</strong> Untuk Slide Deck di NotebookLM, jumlah slide sebenar mungkin tidak ikut bilangan ini dengan tepat. NotebookLM mempunyai algoritma sendiri untuk menentukan panjang persembahan.',
         compactTitle: 'Mod Customize NotebookLM (≤500 aksara)',
-        compactHelper: 'Aktifkan untuk jana prompt ringkas yang muat dalam kotak Customize NotebookLM Slide Deck. Untuk paste ke chat box, biarkan tidak ditandakan.',
+        compactHelper: 'Aktifkan untuk menjana arahan ringkas yang muat dalam kotak Customize NotebookLM Slide Deck. Untuk paste ke chat box, biarkan tidak bertanda.',
+        // ============ v3.8 keys ============
+        lblAiTarget: '🎯 AI Sasaran (Output Prompt Akan Diselaraskan)',
+        imejSafetyBanner: '<strong>Penting:</strong> Fungsi ini hanya menjana arahan teks (prompt). Anda perlu generate imej di Gemini/AI lain. <strong>Jangan guna wajah orang lain tanpa kebenaran</strong>. Untuk wajah pelajar, elakkan atau mohon dapatkan persetujuan bertulis ibu bapa. Elakkan kandungan politik, kontroversi, atau menghina mana-mana pihak (3R).',
+        subImejUmum: 'Imej Umum',
+        subKadUcapan: 'Kad Ucapan',
+        kadLblPerayaan: '1. Perayaan / Sambutan',
+        kadPerayaanHelp: '💡 24 perayaan utama Malaysia termasuk 6 sambutan sekolah',
+        kadLblTema: '2. Tema Reka Bentuk',
+        kadLblAspek: '3. Nisbah Aspek Kad',
+        kadAspectHelp: '💡 1:1 untuk IG post · 4:5 untuk IG portrait · 9:16 untuk WhatsApp Status/Story',
+        kadLblWatak: '4. Watak dalam Kad',
+        kadLblPesanan: '5. Teks Pesanan pada Kad',
+        kadPesananHelp: '💡 Untuk Gemini & ChatGPT, teks akan di-render dalam imej. Untuk Midjourney, overlay manual di Canva selepas generate.',
+        kadLblBahasaPesanan: '6. Bahasa Teks Pesanan',
+        kadFaceLabel: '👤 Personalisasi dengan Wajah',
+        kadFaceHelper: 'Aktifkan untuk tambah arahan supaya AI gunakan wajah dari foto rujukan yang anda upload. Untuk Gemini & ChatGPT, anda boleh upload selfie/foto wajah selepas paste prompt.',
+        kadLblExtras: '7. Elemen Tambahan',
+        nblmSubModeLabel: '📓 Jenis Output NotebookLM',
+        nblmFormatLabel: 'Format Output',
+        nblmLengthLabel: 'Panjang',
+        nblmVisualLabel: 'Gaya Visual',
+        nblmHostsFocusLabel: '3. 🎙️ Fokus AI Hosts (Apa yang patut hosts tekankan)',
+        nblmHostsFocusHelp: '💡 Untuk Audio Overview: arah AI hosts apa yang patut ditonjolkan. Untuk Slide Deck/Video: panduan emphasis content.',
         lblRefineExisting: 'Output Sedia Ada',
         lblRefineGoal: 'Matlamat Refine',
         refineHint1: 'Tampal output asal yang anda mahu refine',
@@ -1556,16 +3284,25 @@
         tipText: '<strong>Tips:</strong> Tampal arahan ini ke dalam Gemini atau NotebookLM. Semakin lengkap input anda, semakin berkualiti output AI.',
         footerDev: 'Dibangunkan Oleh:',
         footerOrg: 'Unit Teknologi Maklumat dan Komunikasi, Jabatan Pendidikan Negeri Kedah',
+        oprTitle: 'Laporan PLC Cascade',
+        oprSubtitle: 'Selepas selesai cascade kepada panitia di sekolah, sila isi & hantar One Page Report (OPR).',
+        oprMainBtn: 'Laporan Bengkel Digital (AI)',
+        oprMainBtnDesc: 'Klik untuk akses template & hantar OPR',
+        oprModalTitle: 'Laporan Bengkel Digital (AI)',
+        oprModalSubtitle: 'Pilih tindakan yang anda mahu lakukan:',
+        oprBtn2: 'Muat Turun Template Canva', oprBtn2Desc: 'Edit di Canva · Reka bentuk fleksibel · Eksport PDF sendiri', oprBtn2Badge: '🎨 Reka Bentuk Bebas',
+        oprBtn3: 'Hantar OPR (PDF)', oprBtn3Desc: 'Upload PDF OPR yang siap ke Google Form · Direkod secara automatik ke JPNK', oprBtn3Badge: '📥 Selepas Siap',
+        oprFlow: 'Aliran Kerja:', oprStep1: '1. Muat Turun Canva', oprStep2: '2. Isi & Eksport PDF', oprStep3: '3. Upload ke Google Form', oprStep4: '4. ✅ Selesai',
         qrTitle: 'Kongsi via QR Code',
-        qrHelper: 'Scan untuk buka arahan dalam peranti lain',
+        qrHelper: 'Imbas untuk membuka arahan dalam peranti lain',
         btnClose: 'Tutup', btnDownloadQR: 'Muat Turun QR',
         historyTitle: 'Sejarah Arahan',
-        historyHelper: '5 arahan terakhir anda tersimpan di peranti ini.',
+        historyHelper: '5 arahan terakhir anda tersimpan dalam peranti ini.',
         generated: 'dijana',
         copied: 'disalin ke clipboard',
         noOutput: 'Tiada arahan untuk',
         resetConfirm: 'Set semula semua input?',
-        resetDone: 'Form di-reset',
+        resetDone: 'Borang ditetapkan semula',
         templateSaved: 'Template disimpan',
         templateLoaded: 'Template dimuatkan',
         templateName: 'Nama template:',
@@ -1605,8 +3342,35 @@
         lblBahasa: 'Output Language',
         cotTitle: 'Use Step-by-Step Analytical Logic',
         cotHelper: 'Chain-of-Thought (C.o.T) — AI will reason before responding for more accurate output.',
+        fewShotTitle: '📚 Include Output Examples (Few-Shot)',
+        fewShotHelper: 'Enable to include 1 example output in the prompt. Boosts AI output consistency ~30-40%. Available for: Slide Deck, KBAT Question Bank, PBD Items, Educational Activities, Rubric Builder.',
+        autoRujukanLabel: '🔖 Auto-Reference',
+        quantityNote: '⚠️ <strong>Note:</strong> For Slide Deck in NotebookLM, the actual slide count may not match this number exactly. NotebookLM uses its own algorithm to determine presentation length.',
         compactTitle: 'NotebookLM Customize Mode (≤500 chars)',
         compactHelper: 'Enable to generate a compact prompt that fits within the NotebookLM Slide Deck Customize box. For pasting into the chat box, leave unchecked.',
+        // ============ v3.8 keys (EN) ============
+        lblAiTarget: '🎯 Target AI (Prompt Will Be Optimized)',
+        imejSafetyBanner: '<strong>Important:</strong> This tool generates text prompts only. You need to generate images at Gemini/other AI. <strong>Do not use other people\'s faces without consent</strong>. For student faces, avoid or obtain written parental consent. Avoid political, controversial, or insulting content (3R).',
+        subImejUmum: 'General Image',
+        subKadUcapan: 'Greeting Card',
+        kadLblPerayaan: '1. Celebration / Event',
+        kadPerayaanHelp: '💡 24 major Malaysian celebrations including 6 school events',
+        kadLblTema: '2. Design Theme',
+        kadLblAspek: '3. Card Aspect Ratio',
+        kadAspectHelp: '💡 1:1 for IG post · 4:5 for IG portrait · 9:16 for WhatsApp Status/Story',
+        kadLblWatak: '4. Characters in Card',
+        kadLblPesanan: '5. Card Message Text',
+        kadPesananHelp: '💡 For Gemini & ChatGPT, text will be rendered in image. For Midjourney, overlay manually in Canva after generation.',
+        kadLblBahasaPesanan: '6. Message Language',
+        kadFaceLabel: '👤 Personalize with Face',
+        kadFaceHelper: 'Enable to add instruction for AI to use face from reference photo you upload. For Gemini & ChatGPT, you can upload selfie/face photo after pasting prompt.',
+        kadLblExtras: '7. Additional Elements',
+        nblmSubModeLabel: '📓 NotebookLM Output Type',
+        nblmFormatLabel: 'Output Format',
+        nblmLengthLabel: 'Length',
+        nblmVisualLabel: 'Visual Style',
+        nblmHostsFocusLabel: '3. 🎙️ AI Hosts Focus (What hosts should emphasize)',
+        nblmHostsFocusHelp: '💡 For Audio Overview: direct AI hosts on what to highlight. For Slide Deck/Video: content emphasis guidance.',
         lblRefineExisting: 'Existing Output',
         lblRefineGoal: 'Refinement Goal',
         refineHint1: 'Paste the original output you want to refine',
@@ -1624,7 +3388,16 @@
         words: 'Words', chars: 'Chars',
         tipText: '<strong>Tip:</strong> Paste this prompt into Gemini or NotebookLM. The more detailed your input, the better the AI output.',
         footerDev: 'Developed By:',
-        footerOrg: 'Unit Teknologi Maklumat dan Komunikasi, Jabatan Pendidikan Negeri Kedah',
+        footerOrg: 'Unit of ICT, Kedah State Education Department',
+        oprTitle: 'PLC Cascade Report',
+        oprSubtitle: 'After completing the cascade session with school colleagues, please fill in and submit the One Page Report (OPR).',
+        oprMainBtn: 'Digital Workshop Report (AI)',
+        oprMainBtnDesc: 'Click to access template & submit OPR',
+        oprModalTitle: 'Digital Workshop Report (AI)',
+        oprModalSubtitle: 'Select an action to proceed:',
+        oprBtn2: 'Download Canva Template', oprBtn2Desc: 'Edit in Canva · Flexible design · Export PDF yourself', oprBtn2Badge: '🎨 Free Design',
+        oprBtn3: 'Submit OPR (PDF)', oprBtn3Desc: 'Upload completed OPR PDF to Google Form · Auto-record to JPNK', oprBtn3Badge: '📥 After Complete',
+        oprFlow: 'Workflow:', oprStep1: '1. Download Canva', oprStep2: '2. Fill & Export PDF', oprStep3: '3. Upload to Google Form', oprStep4: '4. ✅ Done',
         qrTitle: 'Share via QR Code',
         qrHelper: 'Scan to open prompt on another device',
         btnClose: 'Close', btnDownloadQR: 'Download QR',
@@ -1789,10 +3562,279 @@
         });
       });
       state.imgQuality = 'High Quality';
+
+      // ============ v3.8: AI Target Dropdown ============
+      const aiTargetEl = $('aiTarget');
+      aiTargetEl.innerHTML = AI_TARGETS.map(ai =>
+        `<option value="${ai.id}">${ai.emoji} ${ai.label} — ${ai.badge}</option>`
+      ).join('');
+      aiTargetEl.addEventListener('change', () => {
+        state.aiTarget = aiTargetEl.value;
+        updateAiTargetHint();
+        updateCaraGunaText();
+      });
+      state.aiTarget = 'gemini';
+      updateAiTargetHint();
+
+      // ============ v3.8: Sub-tab switcher (Imej Umum / Kad Ucapan) ============
+      const switchSubImej = (sub) => {
+        state.subImej = sub;
+        const isUmum = (sub === 'umum');
+        $('subImejUmum').classList.toggle('active', isUmum);
+        $('subImejUmum').setAttribute('aria-selected', isUmum);
+        $('subKadUcapan').classList.toggle('active', !isUmum);
+        $('subKadUcapan').setAttribute('aria-selected', !isUmum);
+        $('imejUmumPanel').style.display = isUmum ? '' : 'none';
+        $('kadUcapanPanel').style.display = isUmum ? 'none' : '';
+        updateCaraGunaText();
+      };
+      $('subImejUmum').addEventListener('click', () => switchSubImej('umum'));
+      $('subKadUcapan').addEventListener('click', () => switchSubImej('kad'));
+      state.subImej = 'umum';
+
+      // ============ v3.8: Kad Ucapan — Perayaan dropdown ============
+      const kadPerayaanEl = $('kadPerayaan');
+      // Group by kategori untuk visual clarity
+      const kategoriLabel = {
+        islam: '☪️ Agama Islam',
+        cina: '🧧 Tahun Baru Cina',
+        hindu: '🪔 Hindu',
+        buddha: '☸️ Buddha',
+        kristian: '✝️ Kristian',
+        kebangsaan: '🇲🇾 Kebangsaan / Negara',
+        sabah: '🌾 Sabah',
+        sarawak: '🪶 Sarawak',
+        sekolah: '🏫 Pendidikan / Sekolah'
+      };
+      const grouped = {};
+      PERAYAAN_LIBRARY.forEach(p => {
+        if (!grouped[p.kategori]) grouped[p.kategori] = [];
+        grouped[p.kategori].push(p);
+      });
+      kadPerayaanEl.innerHTML = Object.keys(grouped).map(kat =>
+        `<optgroup label="${kategoriLabel[kat] || kat}">${grouped[kat].map(p =>
+          `<option value="${p.id}">${p.emoji} ${p.label}</option>`
+        ).join('')}</optgroup>`
+      ).join('');
+      kadPerayaanEl.addEventListener('change', () => {
+        state.kadPerayaan = kadPerayaanEl.value;
+        updateKadPerayaanInfo();
+      });
+      state.kadPerayaan = PERAYAAN_LIBRARY[0].id;
+      updateKadPerayaanInfo();
+
+      // Tema Kad chips
+      $('kadTemaGrid').innerHTML = TEMA_KAD.map((t, i) =>
+        `<button data-tema="${t.id}" class="md3-chip ${i === 0 ? 'active' : ''} rounded-xl px-2 py-2.5 text-center" type="button">
+          <div class="text-xl mb-0.5">${t.emoji}</div>
+          <div class="font-bold text-xs">${t.label}</div>
+        </button>`
+      ).join('');
+      $('kadTemaGrid').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('kadTemaGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.kadTema = btn.dataset.tema;
+        });
+      });
+      state.kadTema = TEMA_KAD[0].id;
+
+      // Aspect untuk Kad Ucapan (reuse ASPECT_RATIOS but separate state)
+      $('kadAspectGrid').innerHTML = ASPECT_RATIOS.map((a) =>
+        `<button data-kad-aspect="${a.id}" class="md3-chip ${a.id === '4:5' ? 'active' : ''} rounded-xl px-2 py-2 text-center" type="button">
+          <div class="font-bold text-sm">${a.label}</div>
+          <div class="text-[0.65rem] mt-0.5" style="color: var(--md-on-surface-muted);">${a.desc}</div>
+        </button>`
+      ).join('');
+      $('kadAspectGrid').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('kadAspectGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.kadAspect = btn.dataset.kadAspect;
+        });
+      });
+      state.kadAspect = '4:5';
+
+      // Watak dropdown
+      const kadWatakEl = $('kadWatak');
+      kadWatakEl.innerHTML = WATAK_KAD.map((w, i) =>
+        `<option value="${w.id}"${i === 0 ? ' selected' : ''}>${w.label}</option>`
+      ).join('');
+      kadWatakEl.addEventListener('change', () => { state.kadWatak = kadWatakEl.value; });
+      state.kadWatak = WATAK_KAD[0].id;
+
+      // Bahasa Pesanan chips
+      $('kadBahasaPesanan').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('kadBahasaPesanan').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.kadBahasaPesanan = btn.dataset.bahasaPesanan;
+        });
+      });
+      state.kadBahasaPesanan = 'ms';
+
+      // Face toggle
+      $('kadFaceToggle').addEventListener('change', (e) => {
+        state.kadFace = e.target.checked;
+        $('kadFaceWarning').style.display = e.target.checked ? '' : 'none';
+      });
+      state.kadFace = false;
     }
 
-    // ============ BUILD IMAGE PROMPT ============
+    // ============ v3.8: AI Target Hint Updater ============
+    function updateAiTargetHint() {
+      const ai = AI_TARGETS.find(a => a.id === state.aiTarget) || AI_TARGETS[0];
+      $('aiTargetHint').innerHTML = `<strong>${ai.emoji} ${ai.label}</strong>: ${ai.hint}`;
+    }
+
+    // ============ v3.8: "Cara Guna" text updater (per AI + per sub-mode) ============
+    // Updates dua tempat: (1) inline form helper #caraGunaText, (2) panel #caraGunaPanel di bawah output
+    function updateCaraGunaText() {
+      const ai = AI_TARGETS.find(a => a.id === state.aiTarget) || AI_TARGETS[0];
+
+      // (1) Inline form helper (text mode helper above form)
+      const inlineEl = $('caraGunaText');
+      if (inlineEl) {
+        const steps = ai.usageSteps.map((s, i) => `<strong>${i + 1}.</strong> ${s}`).join(' &middot; ');
+        inlineEl.innerHTML = `Untuk <strong>${ai.label}</strong>: ${steps} <a href="${ai.url}" target="_blank" rel="noopener" class="underline font-semibold">Buka ${ai.label} →</a>`;
+      }
+
+      // (2) Cara Guna Panel di bawah output area
+      const badgeEl = $('caraGunaAiBadge');
+      const stepsEl = $('caraGunaSteps');
+      const linkEl = $('caraGunaLink');
+      const linkLabelEl = $('caraGunaLinkLabel');
+      const tipProEl = $('caraGunaTipPro');
+
+      if (badgeEl) badgeEl.innerHTML = `${ai.emoji} ${ai.label}`;
+      if (stepsEl) {
+        stepsEl.innerHTML = ai.usageSteps.map((s, i) =>
+          `<li class="flex gap-2.5 items-start">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+                  style="background: var(--md-primary); color: white;">${i + 1}</span>
+            <span class="flex-1 leading-relaxed">${s}</span>
+          </li>`
+        ).join('');
+      }
+      if (linkEl) linkEl.href = ai.url;
+      if (linkLabelEl) linkLabelEl.textContent = `Buka ${ai.label} →`;
+
+      // Tip Pro untuk Kad Ucapan sub-tab (esp. Midjourney text limitation)
+      if (tipProEl) {
+        if (state.subImej === 'kad') {
+          if (state.aiTarget === 'midjourney') {
+            tipProEl.style.display = '';
+            tipProEl.innerHTML = `<strong>⚠️ Midjourney Text Limitation:</strong> Prompt ni sengaja exclude teks. Selepas generate imej, overlay teks ucapan di Canva untuk hasil terbaik.`;
+          } else {
+            tipProEl.style.display = '';
+            tipProEl.innerHTML = `<strong>💡 Tip Pro:</strong> Untuk wajah/foto sendiri, upload selfie ke ${ai.label} selepas paste prompt — AI akan integrate ke design.`;
+          }
+        } else {
+          tipProEl.style.display = 'none';
+        }
+      }
+    }
+
+    // ============ v3.8: Perayaan Info Card updater ============
+    function updateKadPerayaanInfo() {
+      const p = PERAYAAN_LIBRARY.find(x => x.id === state.kadPerayaan);
+      if (!p) return;
+      const infoEl = $('kadPerayaanInfoText');
+      if (!infoEl) return;
+      let html = `<strong>${p.emoji} ${p.label}</strong><br>`;
+      html += `<span style="opacity:0.85;">Salam default: "${p.greetingMs}"</span><br>`;
+      html += `<span style="opacity:0.85;">Nada: ${p.mood}</span>`;
+      if (p.cautions) {
+        html += `<br><span style="color:#B45309; font-weight:600;">⚠️ ${p.cautions}</span>`;
+      }
+      infoEl.innerHTML = html;
+    }
+
+    // ============ v3.8: NotebookLM Sub-mode Init ============
+    function initNotebookSubMode() {
+      // Sub-mode chips
+      $('notebookSubModeGrid').innerHTML = NOTEBOOKLM_SUBMODES.map((m, i) =>
+        `<button data-submode="${m.id}" class="md3-vibe rounded-xl p-2.5 text-center ${i === 0 ? 'active' : ''}" type="button">
+          <div class="text-xl mb-0.5">${m.emoji}</div>
+          <div class="font-bold text-xs">${m.label}</div>
+        </button>`
+      ).join('');
+      $('notebookSubModeGrid').querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('notebookSubModeGrid').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.notebookSubMode = btn.dataset.submode;
+          updateNotebookSubModeUI();
+        });
+      });
+      state.notebookSubMode = NOTEBOOKLM_SUBMODES[0].id;
+    }
+
+    function updateNotebookSubModeUI() {
+      const sm = NOTEBOOKLM_SUBMODES.find(m => m.id === state.notebookSubMode);
+      if (!sm) return;
+
+      // Note display
+      $('notebookSubModeNote').innerHTML = `<strong>${sm.emoji} ${sm.label}:</strong> ${sm.desc}<br><span style="opacity:0.85;">💡 ${sm.note}</span>`;
+
+      // Format selector
+      if (sm.formats && sm.formats.length > 0) {
+        $('notebookFormatWrap').style.display = '';
+        $('notebookFormat').innerHTML = sm.formats.map(f =>
+          `<option value="${f.id}">${f.label}</option>`
+        ).join('');
+        state.notebookFormat = sm.formats[0].id;
+      } else {
+        $('notebookFormatWrap').style.display = 'none';
+        state.notebookFormat = null;
+      }
+
+      // Length selector
+      if (sm.lengths && sm.lengths.length > 0) {
+        $('notebookLengthWrap').style.display = '';
+        $('notebookLength').innerHTML = sm.lengths.map(l =>
+          `<option value="${l.id}"${l.id === 'default' ? ' selected' : ''}>${l.label}</option>`
+        ).join('');
+        state.notebookLength = 'default';
+      } else {
+        $('notebookLengthWrap').style.display = 'none';
+        state.notebookLength = null;
+      }
+
+      // Visual style (Video Overview only)
+      if (sm.hasVisualStyle && sm.visualStyles) {
+        $('notebookVisualWrap').style.display = '';
+        $('notebookVisual').innerHTML = sm.visualStyles.map(v =>
+          `<option value="${v.id}">${v.label}</option>`
+        ).join('');
+        state.notebookVisual = sm.visualStyles[0].id;
+      } else {
+        $('notebookVisualWrap').style.display = 'none';
+        state.notebookVisual = null;
+      }
+
+      // Vibe relevant?
+      const vibeWrap = $('vibeWrap');
+      if (vibeWrap) {
+        const shouldShow = sm.hasVibe && state.mode === 'notebooklm';
+        // vibeWrap visibility also controlled elsewhere — only override if NotebookLM mode active
+        if (state.mode === 'notebooklm') {
+          vibeWrap.style.display = shouldShow ? '' : 'none';
+        }
+      }
+    }
+
+    // ============ BUILD IMAGE PROMPT (v3.8: branch by AI target + sub-tab) ============
     function buildImagePrompt() {
+      // Branch by sub-tab
+      if (state.subImej === 'kad') {
+        return buildKadUcapanPrompt();
+      }
+      return buildImejUmumPrompt();
+    }
+
+    // ============ v3.8: IMEJ UMUM Builder (with AI target branching) ============
+    function buildImejUmumPrompt() {
       const subject = $('imgSubject').value.trim();
       if (!subject) return null;
 
@@ -1808,66 +3850,293 @@
       const userAvoid = $('imgAvoid').value.trim();
       const quality = state.imgQuality || 'High Quality';
       const aspect = state.imgAspect || '16:9';
+      const ai = AI_TARGETS.find(a => a.id === state.aiTarget) || AI_TARGETS[0];
 
-      // Quality descriptors
+      // Quality descriptors per AI
       const qualityDesc = {
         'Standard': 'good quality',
         'High Quality': 'high quality, detailed, professional',
         'Ultra HD': 'ultra high definition 4K, hyper-detailed, masterpiece quality, award-winning'
       }[quality];
 
-      // Build the prompt as natural paragraph (best format for Gemini Imagen)
-      const parts = [];
-      parts.push(styleObj.kw);
-      if (composition) parts.push(composition);
-      parts.push(`subject: ${subject}`);
-      if (setting) parts.push(`setting: ${setting}`);
-      if (culture) parts.push(culture);
-      if (lighting) parts.push(lighting);
-      if (palette) parts.push(palette);
-      if (mood) parts.push(mood);
-      if (extras) parts.push(`additional details: ${extras}`);
-      if (styleRef) parts.push(`artistic reference: ${styleRef}`);
-      parts.push(qualityDesc);
-
-      const mainPrompt = parts.filter(Boolean).join('. ');
-
-      // Default negative prompts + user additions
       const defaultNeg = 'no text artifacts, no distorted faces, no extra limbs, no watermarks, no blurry areas';
-      const negativePrompt = userAvoid
-        ? `${defaultNeg}, ${userAvoid}`
-        : defaultNeg;
+      const combinedNeg = userAvoid ? `${defaultNeg}, ${userAvoid}` : defaultNeg;
 
-      // Final structured output
-      return `🎨 GEMINI IMAGE GENERATION PROMPT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // BRANCH BY AI TARGET
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      let mainPrompt, headerEmoji, headerLabel;
+      const aspectMap = {
+        '1:1': { sentence: 'square (1:1)', orientation: 'square format', mid: '--ar 1:1' },
+        '16:9': { sentence: 'widescreen 16:9', orientation: 'horizontal landscape (16:9)', mid: '--ar 16:9' },
+        '9:16': { sentence: 'vertical portrait 9:16', orientation: 'vertical (9:16)', mid: '--ar 9:16' },
+        '4:3': { sentence: 'classic 4:3 ratio', orientation: 'horizontal 4:3', mid: '--ar 4:3' },
+        '4:5': { sentence: 'portrait 4:5', orientation: 'vertical portrait (4:5)', mid: '--ar 4:5' }
+      };
+      const ar = aspectMap[aspect] || aspectMap['16:9'];
 
-📝 DESCRIPTION:
-${mainPrompt}.
+      if (state.aiTarget === 'gemini') {
+        // Gemini: natural descriptive paragraph
+        headerEmoji = '✨'; headerLabel = 'GOOGLE GEMINI — IMAGE PROMPT';
+        const parts = [styleObj.kw];
+        if (composition) parts.push(composition);
+        parts.push(`Main subject: ${subject}`);
+        if (setting) parts.push(`Setting: ${setting}`);
+        if (culture) parts.push(culture);
+        if (lighting) parts.push(`Lighting: ${lighting}`);
+        if (palette) parts.push(`Color palette: ${palette}`);
+        if (mood) parts.push(`Mood: ${mood}`);
+        if (extras) parts.push(`Additional details: ${extras}`);
+        if (styleRef) parts.push(`Artistic reference: ${styleRef}`);
+        parts.push(`Render in ${ar.sentence} aspect ratio`);
+        parts.push(qualityDesc);
+        mainPrompt = parts.filter(Boolean).join('. ') + '.';
 
-📐 ASPECT RATIO: ${aspect}
+      } else if (state.aiTarget === 'chatgpt') {
+        // ChatGPT: short clear sentences
+        headerEmoji = '💬'; headerLabel = 'CHATGPT — IMAGE PROMPT';
+        const sentences = [
+          `Create a ${styleObj.label.toLowerCase()} image in ${ar.orientation}.`,
+          `Subject: ${subject}.`,
+        ];
+        if (setting) sentences.push(`Setting: ${setting}.`);
+        if (culture) sentences.push(`${culture}.`);
+        const styleDetails = [lighting, palette, mood].filter(Boolean).join('; ');
+        if (styleDetails) sentences.push(`Style: ${styleDetails}.`);
+        if (composition) sentences.push(`Composition: ${composition}.`);
+        if (extras) sentences.push(`Include: ${extras}.`);
+        if (styleRef) sentences.push(`Inspired by: ${styleRef}.`);
+        sentences.push(`Quality: ${qualityDesc}.`);
+        mainPrompt = sentences.filter(Boolean).join(' ');
 
-❌ AVOID: ${negativePrompt}
+      } else if (state.aiTarget === 'copilot') {
+        // Copilot: short sentences, fixed 1024x1024
+        headerEmoji = '🟦'; headerLabel = 'MICROSOFT COPILOT — IMAGE PROMPT';
+        const sentences = [
+          `${styleObj.label} image of: ${subject}.`,
+        ];
+        if (setting) sentences.push(`Set in ${setting}.`);
+        if (culture) sentences.push(culture + '.');
+        const aesthetic = [lighting, palette, mood, composition].filter(Boolean).join(', ');
+        if (aesthetic) sentences.push(`Visual style: ${aesthetic}.`);
+        if (extras) sentences.push(`Include details: ${extras}.`);
+        if (styleRef) sentences.push(`Reference: ${styleRef}.`);
+        sentences.push(qualityDesc + '.');
+        mainPrompt = sentences.filter(Boolean).join(' ');
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CARA GUNA:
-1. Salin keseluruhan prompt di atas
-2. Buka Gemini (gemini.google.com)
-3. Tampal prompt dan tekan butang "Generate image" (🖼️)
-4. Tunggu Gemini jana imej mengikut spesifikasi`;
+      } else if (state.aiTarget === 'midjourney') {
+        // Midjourney: tag-style with parameters
+        headerEmoji = '🎨'; headerLabel = 'MIDJOURNEY — IMAGE PROMPT';
+        const tags = [
+          subject,
+          styleObj.kw,
+          setting,
+          culture,
+          lighting,
+          palette,
+          mood,
+          composition,
+          extras,
+          styleRef ? `inspired by ${styleRef}` : '',
+          'professional photography, cinematic composition'
+        ].filter(Boolean).join(', ');
+        // Midjourney parameters at end
+        const midNeg = userAvoid ? `text, watermark, distorted faces, ${userAvoid}` : 'text, watermark, distorted faces, extra limbs, blurry';
+        mainPrompt = `${tags} ${ar.mid} --v 8.1 --style raw --s 250 --no ${midNeg}`;
+      }
+
+      // Build header
+      let header = `${headerEmoji} ${headerLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+      // Body differs by AI
+      let body;
+      if (state.aiTarget === 'midjourney') {
+        // Midjourney: prompt only, no separate sections
+        body = `📝 PROMPT (paste lengkap dengan parameters):\n\n${mainPrompt}\n`;
+      } else {
+        body = `📝 DESCRIPTION:\n${mainPrompt}\n\n`;
+        body += `📐 ASPECT RATIO: ${aspect}\n\n`;
+        body += `${ai.negativeKeyword}: ${combinedNeg}\n`;
+      }
+
+      // v3.8 polish: CARA GUNA footer DI BUANG dari output text.
+      // Sebab: footer ni untuk user reference, BUKAN untuk paste ke AI.
+      // Footer dipaparkan secara visual di panel #caraGunaPanel di bawah output area.
+      return header + body;
+    }
+
+    // ============ v3.8: KAD UCAPAN Builder ============
+    function buildKadUcapanPrompt() {
+      const perayaan = PERAYAAN_LIBRARY.find(p => p.id === state.kadPerayaan) || PERAYAAN_LIBRARY[0];
+      const tema = TEMA_KAD.find(t => t.id === state.kadTema) || TEMA_KAD[0];
+      const watak = WATAK_KAD.find(w => w.id === state.kadWatak) || WATAK_KAD[0];
+      const aspect = state.kadAspect || '4:5';
+      const ai = AI_TARGETS.find(a => a.id === state.aiTarget) || AI_TARGETS[0];
+      const pesananCustom = $('kadPesanan').value.trim();
+      const bahasa = state.kadBahasaPesanan || 'ms';
+      const extras = $('kadExtras').value.trim();
+      const faceEnabled = state.kadFace;
+
+      // Determine greeting text
+      let greeting;
+      if (pesananCustom) {
+        greeting = pesananCustom;
+      } else if (bahasa === 'en') {
+        greeting = perayaan.greetingEn;
+      } else if (bahasa === 'dual') {
+        greeting = `${perayaan.greetingMs} / ${perayaan.greetingEn}`;
+      } else if (bahasa === 'jawi') {
+        greeting = `[render dalam tulisan Jawi]: ${perayaan.greetingMs}`;
+      } else {
+        greeting = perayaan.greetingMs;
+      }
+
+      // Aspect map
+      const aspectMap = {
+        '1:1': { sentence: 'square (1:1) — sesuai post Instagram', orientation: 'square format', mid: '--ar 1:1' },
+        '16:9': { sentence: 'widescreen 16:9', orientation: 'horizontal landscape (16:9)', mid: '--ar 16:9' },
+        '9:16': { sentence: 'vertical portrait 9:16 — sesuai WhatsApp Status/Story', orientation: 'vertical mobile (9:16)', mid: '--ar 9:16' },
+        '4:3': { sentence: 'classic 4:3', orientation: 'horizontal 4:3', mid: '--ar 4:3' },
+        '4:5': { sentence: 'portrait 4:5 — sesuai post Instagram portrait', orientation: 'vertical portrait (4:5)', mid: '--ar 4:5' }
+      };
+      const ar = aspectMap[aspect] || aspectMap['4:5'];
+
+      // Face personalization clause
+      const faceClause = faceEnabled
+        ? (state.aiTarget === 'midjourney'
+            ? 'character ref' /* Midjourney --cref unsupported on text, just hint */
+            : 'Use the face from the reference photo I will upload separately to personalize the main subject (preserve facial features, age, ethnicity from reference).')
+        : '';
+
+      // Build prompt body per AI
+      let mainPrompt, headerEmoji, headerLabel, body;
+      headerEmoji = '🎉'; headerLabel = `KAD UCAPAN ${perayaan.label.toUpperCase()} — ${ai.label}`;
+
+      if (state.aiTarget === 'gemini') {
+        // Gemini: natural paragraph with explicit text rendering instruction
+        const parts = [
+          `Festive greeting card design for ${perayaan.label} in Malaysia, ${tema.kw}`,
+          `Background scene: ${perayaan.bgCues}`,
+          `Cultural symbols and elements: ${perayaan.symbols}`,
+          `Color palette: ${perayaan.palette}`,
+          `Overall mood: ${perayaan.mood}`,
+          `Subject composition: ${watak.desc}`,
+          `Render the text "${greeting}" clearly and elegantly integrated into the design${bahasa === 'jawi' ? ' in traditional Jawi script (Arabic calligraphy style)' : ''}`,
+          extras ? `Additional elements: ${extras}` : '',
+          faceClause,
+          `Format as ${ar.sentence}`,
+          `high quality, sharp focus, professional greeting card aesthetic`
+        ].filter(Boolean);
+        mainPrompt = parts.join('. ') + '.';
+
+        body = `📝 DESCRIPTION:\n${mainPrompt}\n\n`;
+        body += `📐 ASPECT RATIO: ${aspect}\n\n`;
+        body += `⚠️ CULTURAL SENSITIVITY: ${perayaan.cautions}\n\n`;
+        body += `Avoid: distorted text, illegible writing, distorted faces, watermark, low quality`;
+
+      } else if (state.aiTarget === 'chatgpt') {
+        // ChatGPT: short clear sentences
+        const sentences = [
+          `Create a ${tema.label.toLowerCase()} festive greeting card for ${perayaan.label} (Malaysian context), in ${ar.orientation}.`,
+          `Scene: ${perayaan.bgCues}.`,
+          `Cultural elements: ${perayaan.symbols}.`,
+          `Color palette: ${perayaan.palette}.`,
+          `Mood: ${perayaan.mood}.`,
+          `Subjects: ${watak.desc}.`,
+          `Text to render in design: "${greeting}"${bahasa === 'jawi' ? ' — render this text in Jawi script (Arabic calligraphy)' : ''}.`,
+        ];
+        if (extras) sentences.push(`Additional: ${extras}.`);
+        if (faceClause) sentences.push(faceClause);
+        sentences.push('High quality, sharp focus, professional greeting card design.');
+        mainPrompt = sentences.join(' ');
+
+        body = `📝 PROMPT:\n${mainPrompt}\n\n`;
+        body += `📐 ORIENTATION: ${ar.orientation}\n\n`;
+        body += `⚠️ Cultural note: ${perayaan.cautions}\n\n`;
+        body += `Without: distorted text, illegible writing, distorted faces, watermark`;
+
+      } else if (state.aiTarget === 'copilot') {
+        // Copilot: short sentences, 1024x1024 fixed
+        const sentences = [
+          `${tema.label} greeting card design for ${perayaan.label} (Malaysian celebration).`,
+          `Scene: ${perayaan.bgCues}.`,
+          `Featuring: ${perayaan.symbols}.`,
+          `Colors: ${perayaan.palette}.`,
+          `Mood: ${perayaan.mood}.`,
+          `Subjects: ${watak.desc}.`,
+          `Display text in design: "${greeting}"${bahasa === 'jawi' ? ' (in Jawi/Arabic script)' : ''}.`
+        ];
+        if (extras) sentences.push(`${extras}.`);
+        if (faceClause) sentences.push(faceClause);
+        sentences.push('High quality professional festive design.');
+        mainPrompt = sentences.join(' ');
+
+        body = `📝 PROMPT:\n${mainPrompt}\n\n`;
+        body += `📐 Output: ${ar.orientation} (Copilot default 1024×1024)\n\n`;
+        body += `⚠️ Cultural note: ${perayaan.cautions}\n\n`;
+        body += `Do not include: distorted text, illegible writing, distorted faces, watermark`;
+
+      } else if (state.aiTarget === 'midjourney') {
+        // Midjourney: tag style + parameters
+        const tags = [
+          `${perayaan.label} greeting card design`,
+          tema.kw,
+          perayaan.bgCues.substring(0, 200), // shorter for tag style
+          perayaan.symbols.substring(0, 150),
+          `color palette: ${perayaan.palette}`,
+          `mood: ${perayaan.mood}`,
+          watak.desc,
+          extras,
+          'Malaysian festive context, professional greeting card aesthetic'
+        ].filter(Boolean).join(', ');
+        mainPrompt = `${tags} ${ar.mid} --v 8.1 --style raw --s 250 --no text, words, letters, watermark, distorted faces, low quality`;
+
+        body = `📝 PROMPT (paste lengkap dengan parameters):\n\n${mainPrompt}\n\n`;
+        body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        body += `⚠️ PENTING — Text Rendering Limitation:\n`;
+        body += `Midjourney lemah render teks. PROMPT INI SENGAJA EXCLUDE TEKS.\n`;
+        body += `Untuk tambah teks ucapan "${greeting}", buat di Canva selepas generate:\n`;
+        body += `  1. Export imej Midjourney\n`;
+        body += `  2. Buka Canva → upload imej\n`;
+        body += `  3. Overlay teks dengan font yang sesuai\n`;
+        body += `  4. Export final design\n\n`;
+        body += `⚠️ Cultural note: ${perayaan.cautions}`;
+      }
+
+      // Header
+      const header = `${headerEmoji} ${headerLabel}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+      // v3.8 polish: CARA GUNA + TIP PRO footer DI BUANG dari output text.
+      // Sebab: footer ni untuk user reference, BUKAN untuk paste ke AI.
+      // Footer dipaparkan secara visual di panel #caraGunaPanel di bawah output area.
+      return header + body;
     }
 
     // ============ MODE SWITCHING ============
     function setMode(mode) {
       state.mode = mode;
-      ['modeGemini', 'modeNotebook', 'modeImej'].forEach(id => $(id).classList.remove('active'));
+      ['modeGemini', 'modeNotebook', 'modeImej'].forEach(id => {
+        const el = $(id);
+        if (el) {
+          el.classList.remove('active');
+          el.setAttribute('aria-selected', 'false');
+        }
+      });
       const map = { gemini: 'modeGemini', notebooklm: 'modeNotebook', imej: 'modeImej' };
-      $(map[mode]).classList.add('active');
+      const activeEl = $(map[mode]);
+      if (activeEl) {
+        activeEl.classList.add('active');
+        activeEl.setAttribute('aria-selected', 'true');
+      }
 
       // Toggle text form vs image form
       const isImej = (mode === 'imej');
       $('textForm').style.display = isImej ? 'none' : '';
       $('imageForm').style.display = isImej ? '' : 'none';
+
+      // v3.8 polish: Show Cara Guna Panel hanya dalam imej mode
+      const caraGunaPanel = $('caraGunaPanel');
+      if (caraGunaPanel) caraGunaPanel.style.display = isImej ? '' : 'none';
 
       // Update section title
       $('configTitle').textContent = isImej ? 'Konfigurasi Imej' : (I18N[state.lang].configTitle);
@@ -1891,9 +4160,41 @@ CARA GUNA:
         updateCompactVisibility();
         updateQuantityVisibility();
         toggleObjektifLain();
+
+        // ============ v3.8: NotebookLM-specific UI ============
+        const isNotebookLm = (mode === 'notebooklm');
+        $('notebookSubModeWrap').style.display = isNotebookLm ? '' : 'none';
+
+        // Hide persona, kreativiti, CoT, fewShot untuk NotebookLM (tak relevan untuk RAG model)
+        // Tunjuk hosts focus textarea sebagai pengganti persona
+        if ($('personaWrap')) $('personaWrap').style.display = isNotebookLm ? 'none' : '';
+        if ($('hostsFocusWrap')) $('hostsFocusWrap').style.display = isNotebookLm ? '' : 'none';
+        if ($('kreativitiWrap')) $('kreativitiWrap').style.display = isNotebookLm ? 'none' : '';
+        if ($('cotWrap')) $('cotWrap').style.display = isNotebookLm ? 'none' : '';
+        if ($('fewShotWrap')) $('fewShotWrap').style.display = isNotebookLm ? 'none' : '';
+
+        // Update format/length/visual selectors based on sub-mode
+        if (isNotebookLm) {
+          updateNotebookSubModeUI();
+        } else {
+          // Hide all NotebookLM sub-controls
+          $('notebookFormatWrap').style.display = 'none';
+          $('notebookLengthWrap').style.display = 'none';
+          $('notebookVisualWrap').style.display = 'none';
+        }
       } else {
         // Hide compact toggle in image mode
         $('compactWrap').style.display = 'none';
+
+        // Hide all NotebookLM-specific UI in image mode
+        $('notebookSubModeWrap').style.display = 'none';
+        $('notebookFormatWrap').style.display = 'none';
+        $('notebookLengthWrap').style.display = 'none';
+        $('notebookVisualWrap').style.display = 'none';
+        if ($('hostsFocusWrap')) $('hostsFocusWrap').style.display = 'none';
+
+        // Initialize cara guna text on first image mode switch
+        updateCaraGunaText();
       }
 
       // Status chip visibility for image mode
@@ -1933,6 +4234,11 @@ CARA GUNA:
         qEl.max = config.max;
         if (qEl.value > config.max) qEl.value = config.default;
         $('quantityValue').textContent = qEl.value;
+        // Show NotebookLM accuracy note only for Slide Deck
+        const noteEl = $('quantityNote');
+        if (noteEl) {
+          noteEl.style.display = (obj === 'Formatkan Slide Deck') ? '' : 'none';
+        }
       } else {
         $('quantityWrap').style.display = 'none';
       }
@@ -1972,6 +4278,47 @@ CARA GUNA:
         `<option value="__LAIN__">${t('other')}</option>`;
       sEl.disabled = false;
       $('subjekLainWrap').style.display = 'none';
+      
+      // Auto-fill Rujukan if toggle ON and field empty
+      applyDefaultReference();
+    }
+
+    // ============ AUTO-FILL DEFAULT REFERENCE ============
+    function applyDefaultReference() {
+      const autoRujukanEl = $('autoRujukan');
+      const rujukanEl = $('rujukan');
+      if (!autoRujukanEl || !rujukanEl) return;
+      
+      const isAutoOn = autoRujukanEl.checked;
+      const bidang = $('bidang').value;
+      const tahap = $('tahap') ? $('tahap').value : '';
+      const currentValue = rujukanEl.value.trim();
+      
+      if (!isAutoOn) return; // Don't auto-fill if toggle OFF
+      if (!bidang) return; // No bidang selected
+      
+      const refObj = DEFAULT_REFERENCES[bidang];
+      if (!refObj) return;
+      
+      // Try tahap-specific first, fallback to default
+      const defaultRef = (refObj[tahap] || refObj.default || '').trim();
+      if (!defaultRef) return;
+      
+      // Only fill if field is empty OR contains a previously auto-filled value
+      // Collect all possible auto-default strings for comparison
+      const allDefaults = new Set();
+      Object.values(DEFAULT_REFERENCES).forEach(obj => {
+        if (typeof obj === 'object') {
+          Object.values(obj).forEach(v => allDefaults.add(v));
+        }
+      });
+      
+      const isUntouched = !currentValue || allDefaults.has(currentValue);
+      
+      if (isUntouched) {
+        rujukanEl.value = defaultRef;
+        rujukanEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     }
 
     // ============ PROMPT ALCHEMY ENGINE ============
@@ -1982,51 +4329,169 @@ CARA GUNA:
       return $('subjek').value || '[Belum dipilih]';
     }
 
-    // ============ COMPACT BUILDER (NotebookLM Customize ≤500 chars) ============
+    // ============ COMPACT BUILDER (NotebookLM Customize ≤500 chars) — v3.8 ============
+    // REFACTOR: Removed persona/kreativiti/CoT (tak relevan untuk RAG model).
+    // Dispatch by sub-mode: Slide Deck / Audio Overview / Video Overview / Mind Map.
     function buildCompactNotebookPrompt(o) {
-      // Map verbose values to ringkas equivalents
-      const kShort = {
-        'Sederhana': 'seimbang',
-        'Fakta Ketat': 'ketat fakta (tiada halusinasi)',
-        'Tinggi (Luar Kotak)': 'kreatif & metafora'
-      };
-      const bShort = {
+      const submode = NOTEBOOKLM_SUBMODES.find(m => m.id === state.notebookSubMode) || NOTEBOOKLM_SUBMODES[0];
+      const hostsFocus = $('hostsFocus') ? $('hostsFocus').value.trim() : '';
+      const format = state.notebookFormat || '';
+      const length = state.notebookLength || '';
+      const visual = state.notebookVisual || '';
+
+      const bahasaShort = {
         'BM': 'Bahasa Melayu profesional',
         'BI': 'Professional English',
         'Dwibahasa': 'Dwibahasa BM-BI'
+      }[o.bahasa] || 'Bahasa Melayu profesional';
+
+      const tahapHint = (o.tahap && o.tahap !== 'Umum') ? ` (sasaran: ${o.tahap})` : '';
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // Branch by sub-mode
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (submode.id === 'slide-deck') {
+        // Slide Deck customize box
+        const vibe = o.vibeObj ? `\nGAYA REKAAN: ${o.vibeObj.keywords}` : '';
+        const fmtLabel = format === 'detailed' ? 'Detailed Deck (komprehensif)' : 'Presenter Slides (ringkas)';
+        return `Berdasarkan sumber yang dimuat naik, hasilkan SLIDE DECK${tahapHint}.
+
+FOKUS UTAMA: ${o.topik}
+FORMAT: ${fmtLabel}
+PANJANG: ${length}
+${hostsFocus ? `EMPHASIS: ${hostsFocus}` : ''}${vibe}
+
+STRUKTUR YANG DICADANGKAN:
+- Slide pembukaan: tajuk + agenda
+- Slide kandungan: 1 konsep utama per slide
+- Slide penutup: rumusan & soal-jawab
+
+BAHASA: ${bahasaShort}
+GROUNDED: Hanya guna maklumat dari sumber. Elakkan spekulasi.`;
+      }
+
+      if (submode.id === 'audio-overview') {
+        const fmtMap = {
+          'deep-dive': 'Deep Dive — perbincangan mendalam yang mengupas konsep',
+          'brief': 'Brief — ringkasan padat untuk pendengar pantas',
+          'debate': 'Debate — dua hosts perdebatan dari sudut pandangan berbeza',
+          'critique': 'Critique — analisis kritis terhadap idea dalam sumber'
+        };
+        return `Berdasarkan sumber yang dimuat naik, hasilkan AUDIO OVERVIEW${tahapHint}.
+
+FOKUS UTAMA: ${o.topik}
+FORMAT: ${fmtMap[format] || fmtMap['deep-dive']}
+PANJANG: ${length}
+BAHASA: ${bahasaShort}
+
+ARAHAN UNTUK AI HOSTS:
+${hostsFocus || `- Bincangkan ${o.topik} dengan nada conversational tapi authoritative
+- Sertakan contoh praktikal untuk konteks Malaysia
+- Gunakan soalan rhetorical untuk libatkan pendengar`}
+
+GROUNDED: Bincangkan hanya berdasarkan sumber. Elakkan tambah fakta luar.`;
+      }
+
+      if (submode.id === 'video-overview') {
+        const fmtLabel = format === 'explainer' ? 'Explainer (penerangan lengkap dengan visual)' : 'Brief (ringkasan padat)';
+        const visualMap = {
+          'whiteboard': 'gaya papan putih (whiteboard) — sketsa hand-drawn',
+          'kawaii': 'gaya kawaii — comel ceria warna pastel',
+          'watercolor': 'gaya cat air (watercolor) — artistic soft',
+          'classic': 'gaya klasik — clean professional infographic'
+        };
+        return `Berdasarkan sumber yang dimuat naik, hasilkan VIDEO OVERVIEW${tahapHint}.
+
+FOKUS UTAMA: ${o.topik}
+FORMAT: ${fmtLabel}
+GAYA VISUAL: ${visualMap[visual] || visualMap['classic']}
+${hostsFocus ? `EMPHASIS: ${hostsFocus}` : ''}
+
+NARASI:
+- Buka dengan hook yang menarik
+- Bina argumen secara progressive
+- Tutup dengan key takeaway
+
+BAHASA: ${bahasaShort}
+GROUNDED: Visual & narrative berdasarkan sumber sahaja.`;
+      }
+
+      if (submode.id === 'mind-map') {
+        // Mind Map NotebookLM tak terima custom prompt — output ni untuk Hafiz susun sumber upload
+        return `[ℹ️ NOTA: NotebookLM Mind Map TIDAK terima custom prompt — terus dijana dari sumber.]
+
+📋 PANDUAN SUSUN SUMBER UNTUK MIND MAP BERKUALITI:
+
+TOPIK FOKUS: ${o.topik}${tahapHint}
+
+Sebelum upload sumber ke NotebookLM, pastikan dokumen anda ada:
+
+1. HIERARKI HEADING JELAS:
+   # ${o.topik} (H1 — tajuk utama)
+   ## Sub-topik A (H2)
+   ### Konsep A.1 (H3)
+   ### Konsep A.2 (H3)
+   ## Sub-topik B (H2)
+
+2. STRUKTUR KONTEN:
+   - Setiap section ada definisi + 2-3 idea utama
+   - Gunakan bullet points untuk concept relationships
+   - Sertakan cross-references antara topik
+
+3. LANGKAH:
+   - Upload sumber yang dah distructured
+   - Studio panel → Mind Map → Generate
+   - NotebookLM auto-detect hierarchy dari heading
+
+BAHASA: ${bahasaShort}`;
+      }
+
+      // Fallback (shouldn't reach)
+      return `Berdasarkan sumber yang dimuat naik, fokus pada: ${o.topik}.\nBahasa: ${bahasaShort}.`;
+    }
+
+    // ============ v3.8: FULL NotebookLM Builder (untuk chat box, bukan customize) ============
+    // Conversational style, bukan XML, untuk paste ke NotebookLM chat
+    function buildFullNotebookPrompt(o) {
+      const submode = NOTEBOOKLM_SUBMODES.find(m => m.id === state.notebookSubMode) || NOTEBOOKLM_SUBMODES[0];
+      const hostsFocus = $('hostsFocus') ? $('hostsFocus').value.trim() : '';
+
+      const tahapLine = (o.tahap && o.tahap !== 'Umum') ? `Sasaran pembaca/pelajar: ${o.tahap}. ` : '';
+
+      const intro = `Saya seorang ${o.bidang === '[Belum dipilih]' ? 'pendidik' : 'pendidik dalam bidang ' + o.bidang}${o.subjek ? ` (khusus: ${o.subjek})` : ''} di Malaysia. ${tahapLine}`;
+
+      const submodeContext = {
+        'slide-deck': `Saya akan menjana Slide Deck di Studio panel. Custom prompt yang saya guna untuk Slide Deck telah dimasukkan dalam customize box.\n\nSementara itu, dalam chat ini, tolong:\n\n${o.tugasan} — fokus pada ${o.topik}.`,
+        'audio-overview': `Saya akan menjana Audio Overview. Custom prompt sudah dimasukkan dalam customize box.\n\nSementara itu, dalam chat ini, tolong jawab soalan berikut berdasarkan sumber:\n\n${o.tugasan} berkaitan ${o.topik}.`,
+        'video-overview': `Saya akan menjana Video Overview. Custom prompt sudah dimasukkan dalam customize box.\n\nDalam chat ini, tolong:\n\n${o.tugasan} — fokus pada ${o.topik}.`,
+        'mind-map': `Saya akan menjana Mind Map. Sebelum itu, tolong analisa sumber dan jawab:\n\n${o.tugasan} berkaitan ${o.topik}.`
       };
-      const bahasa = bShort[o.bahasa] || bShort['BM'];
-      const kreativiti = kShort[o.kreativiti] || o.kreativiti;
 
-      // Build mission line
-      let mission = o.tugasan;
-      if (o.qty) {
-        const label = QUANTITY_OBJECTIVES[o.tugasan]?.label.toLowerCase() || 'unit';
-        mission = `${o.tugasan} (${o.qty} ${label})`;
+      const context = submodeContext[submode.id] || `${o.tugasan} — fokus pada ${o.topik}.`;
+
+      let body = `${intro}\n\n${context}`;
+
+      if (o.rujukan) {
+        body += `\n\nPanduan rujukan tambahan:\n"""\n${o.rujukan}\n"""\n\nKeutamaan: standard/rujukan di atas.`;
       }
 
-      // Tahap context (skip if generic)
-      const tahapLine = (o.tahap && o.tahap !== 'Umum') ? ` (sasaran: ${o.tahap})` : '';
-
-      // Vibe block - only if Slide Deck format
-      let vibeLine = '';
-      if (o.tugasan === 'Formatkan Slide Deck' && o.vibeObj) {
-        vibeLine = `\nVIBE: ${o.vibeObj.keywords}`;
+      if (hostsFocus) {
+        body += `\n\nEmphasis khusus: ${hostsFocus}`;
       }
 
-      // CoT - only if checked, very short
-      const cotLine = o.useCoT ? '\nGuna Chain-of-Thought sebelum jawapan akhir.' : '';
+      body += `\n\nFormat output: ${o.formatDesc}\nBahasa: ${o.bahasaDesc}`;
+      body += `\n\nPENTING: Pastikan jawapan grounded dalam sumber yang dimuat naik. Sertakan citation/reference dalam jawapan.`;
 
-      // Compose
-      const prompt = `Berdasarkan dokumen yang dimuat naik, laksanakan: ${mission}${tahapLine}.
+      // v3.8 patch: Inject Few-Shot example kalau toggle ON dan ada match
+      const fewShotEl = $('fewShot');
+      if (fewShotEl && fewShotEl.checked) {
+        const exampleOutput = getFewShotExample(o.tugasan);
+        if (exampleOutput) {
+          body += `\n\nCONTOH FORMAT YANG SAYA MAHU (ikut struktur ini dengan tepat):\n"""\n${exampleOutput}\n"""`;
+        }
+      }
 
-Topik fokus: ${o.topik}
-Persona AI: ${o.personaId}
-Format output: ${o.format}
-Aras kreativiti: ${kreativiti}
-Bahasa: ${bahasa}${vibeLine}${cotLine}`;
-
-      return prompt;
+      return body;
     }
 
     // ============ REFINE BUILDER (v3.4) — Naik taraf output sedia ada ============
@@ -2117,12 +4582,21 @@ Berdasarkan parameter sistem di atas, naik taraf output sedia ada sekarang.
       const qty = QUANTITY_OBJECTIVES[tugasan] ? $('quantity').value : null;
       const vibeObj = state.vibe ? VIBES.find(v => v.id === state.vibe) : null;
 
-      // ━━━ COMPACT MODE for NotebookLM Customize Box (≤500 chars) ━━━
-      if (state.mode === 'notebooklm' && state.compactMode) {
-        return buildCompactNotebookPrompt({
-          bidang, subjek, personaId, topik, tahap, tugasan, qty,
-          kreativiti, format, useCoT, bahasa, vibeObj
-        });
+      // ━━━ v3.8: NotebookLM Mode Dispatch ━━━
+      if (state.mode === 'notebooklm') {
+        if (state.compactMode) {
+          // Customize box (≤500 chars) — guna sub-mode specific builder
+          return buildCompactNotebookPrompt({
+            bidang, subjek, personaId, topik, tahap, tugasan, qty,
+            kreativiti, format, useCoT, bahasa, vibeObj
+          });
+        } else {
+          // Chat box — conversational style
+          return buildFullNotebookPrompt({
+            bidang, subjek, personaId, topik, rujukan, tahap, tugasan, qty,
+            format, formatDesc, bahasa, bahasaDesc, vibeObj
+          });
+        }
       }
 
       // ━━━ REFINE MODE — Naik taraf output sedia ada ━━━
@@ -2193,6 +4667,30 @@ Fokus/Topik: ${topik}
 ${missionIntro}
 </TASK_DEFINITION>`
       );
+
+      // Inject OUTPUT_STRUCTURE if available for this objektif
+      const outputStructure = getOutputStructure(tugasan);
+      if (outputStructure) {
+        blocks.push(
+`<OUTPUT_STRUCTURE>
+${outputStructure}
+</OUTPUT_STRUCTURE>`
+        );
+      }
+
+      // Inject FEW_SHOT_EXAMPLE if toggle ON and example available
+      const fewShotEl = $('fewShot');
+      const isFewShotOn = fewShotEl && fewShotEl.checked;
+      if (isFewShotOn) {
+        const exampleOutput = getFewShotExample(tugasan);
+        if (exampleOutput) {
+          blocks.push(
+`<EXAMPLE_OUTPUT>
+${exampleOutput}
+</EXAMPLE_OUTPUT>`
+          );
+        }
+      }
 
       blocks.push(
 `<CONSTRAINTS_AND_RULES>
@@ -2296,6 +4794,50 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       }
       showToast(`✨ ${t('generated')}!`);
     }
+    // v3.8 Polish: XML syntax highlighter untuk output area.
+    // Tokenize berdasarkan pattern PintarAI output (XML tags, sections, markers, dividers).
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+    function highlightOutput(rawText) {
+      if (!rawText) return '';
+      let s = escapeHtml(rawText);
+
+      // 1. XML tags: <TAG_NAME> dan </TAG_NAME>
+      s = s.replace(/(&lt;\/?)([A-Z_][A-Z0-9_]*)(&gt;)/g,
+        '<span class="tok-tag-open">$1</span><span class="tok-tag-name">$2</span><span class="tok-tag-open">$3</span>');
+
+      // 2. Dividers (━━━ atau ═══)
+      s = s.replace(/([━═]{3,})/g, '<span class="tok-divider">$1</span>');
+
+      // 3. Section headers berbentuk "📝 SECTION NAME:" atau ALL CAPS WITH EMOJI
+      s = s.replace(/^([📝📐❌✨🎨🎯💬🟦🎉🪄🎙️🏆📋⚠️💡🔖📚]\s+[A-Z][A-Z\s\(\)/—-]{2,}:)/gm,
+        '<span class="tok-section">$1</span>');
+
+      // 4. Markers berbentuk "SLIDE 1 — COVER" atau "JUDUL:" atau "BAHAGIAN A:"
+      s = s.replace(/^(SLIDE \d+|BAHAGIAN [A-Z]|SOALAN \d+|ITEM \d+|AKTIVITI \d+|TAHAP \d+|KRITERIA \d+)(\s*[—\-:].*)?$/gm,
+        '<span class="tok-marker">$1$2</span>');
+
+      // 5. Key labels: "JUDUL:", "TAHAP:", "OBJEKTIF:", "KANDUNGAN:" (start of line)
+      s = s.replace(/^([A-Z][A-Z\s]{2,30}):(\s)/gm,
+        '<span class="tok-key">$1:</span>$2');
+
+      // 6. CARA GUNA section
+      s = s.replace(/^(CARA GUNA[^:\n]*:)/gm,
+        '<span class="tok-section">$1</span>');
+
+      return s + '\n'; // trailing newline untuk match textarea height
+    }
+
+    function syncHighlight() {
+      const txt = $('output').value;
+      const highlightEl = $('outputHighlight');
+      if (highlightEl) {
+        highlightEl.innerHTML = highlightOutput(txt);
+        // Sync scroll position
+        highlightEl.scrollTop = $('output').scrollTop;
+      }
+    }
 
     // ============ COUNTER ============
     function updateCounter() {
@@ -2306,6 +4848,9 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('wordCount').textContent = words.toLocaleString();
       $('charCount').textContent = chars.toLocaleString();
       $('tokenCount').textContent = tokens.toLocaleString();
+
+      // v3.8 Polish: Sync syntax highlighting setiap kali output update
+      syncHighlight();
 
       // Context warning — adapts to mode
       const badge = $('contextBadge');
@@ -2360,8 +4905,14 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       } catch (e) {
         $('output').select(); document.execCommand('copy');
       }
-      $('copyLabel').textContent = '✓';
-      setTimeout(() => { $('copyLabel').textContent = t('btnCopy'); }, 1800);
+      // v3.8 Polish: Trigger morph animation (clipboard → check)
+      const btn = $('copyBtn');
+      btn.classList.add('copied');
+      $('copyLabel').textContent = '✓ ' + t('copied').replace('📋 ', '');
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        $('copyLabel').textContent = t('btnCopy');
+      }, 2000);
       showToast('📋 ' + t('copied'));
     }
 
@@ -2419,6 +4970,9 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       state.compactMode = false;
       $('compactMode').checked = false;
 
+      // v3.8 patch: Reset fewShot checkbox juga
+      if ($('fewShot')) $('fewShot').checked = false;
+
       // Reset image fields
       $('imgSubject').value = '';
       $('imgExtras').value = '';
@@ -2436,6 +4990,47 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('imgPalette').value = 'Warna Terang (Vibrant)';
       $('imgMood').value = 'Ceria';
       $('imgComposition').value = 'Medium Shot (Separuh Badan)';
+
+      // ============ v3.8: Reset AI target, sub-tab, Kad Ucapan, NotebookLM sub-mode ============
+      state.aiTarget = 'gemini';
+      $('aiTarget').value = 'gemini';
+      updateAiTargetHint();
+
+      // Sub-tab reset
+      state.subImej = 'umum';
+      $('subImejUmum').classList.add('active');
+      $('subImejUmum').setAttribute('aria-selected', 'true');
+      $('subKadUcapan').classList.remove('active');
+      $('subKadUcapan').setAttribute('aria-selected', 'false');
+      $('imejUmumPanel').style.display = '';
+      $('kadUcapanPanel').style.display = 'none';
+
+      // Kad Ucapan fields
+      state.kadPerayaan = PERAYAAN_LIBRARY[0].id;
+      $('kadPerayaan').value = PERAYAAN_LIBRARY[0].id;
+      state.kadTema = TEMA_KAD[0].id;
+      $('kadTemaGrid').querySelectorAll('button').forEach((b, i) => b.classList.toggle('active', i === 0));
+      state.kadAspect = '4:5';
+      $('kadAspectGrid').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.kadAspect === '4:5'));
+      state.kadWatak = WATAK_KAD[0].id;
+      $('kadWatak').value = WATAK_KAD[0].id;
+      $('kadPesanan').value = '';
+      state.kadBahasaPesanan = 'ms';
+      $('kadBahasaPesanan').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.bahasaPesanan === 'ms'));
+      state.kadFace = false;
+      $('kadFaceToggle').checked = false;
+      $('kadFaceWarning').style.display = 'none';
+      $('kadExtras').value = '';
+      updateKadPerayaanInfo();
+      updateCaraGunaText();
+
+      // NotebookLM sub-mode reset
+      state.notebookSubMode = NOTEBOOKLM_SUBMODES[0].id;
+      $('notebookSubModeGrid').querySelectorAll('button').forEach((b, i) => b.classList.toggle('active', i === 0));
+      state.notebookFormat = null;
+      state.notebookLength = null;
+      state.notebookVisual = null;
+      if ($('hostsFocus')) $('hostsFocus').value = '';
 
       setMode('gemini');
       showToast('🔄 ' + t('resetDone'));
@@ -2540,7 +5135,23 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         imgExtras: $('imgExtras').value,
         imgStyleRef: $('imgStyleRef').value,
         imgAvoid: $('imgAvoid').value,
-        imgQuality: state.imgQuality
+        imgQuality: state.imgQuality,
+        // ============ v3.8 fields ============
+        aiTarget: state.aiTarget,
+        subImej: state.subImej,
+        kadPerayaan: state.kadPerayaan,
+        kadTema: state.kadTema,
+        kadAspect: state.kadAspect,
+        kadWatak: state.kadWatak,
+        kadPesanan: $('kadPesanan') ? $('kadPesanan').value : '',
+        kadBahasaPesanan: state.kadBahasaPesanan,
+        kadFace: state.kadFace,
+        kadExtras: $('kadExtras') ? $('kadExtras').value : '',
+        notebookSubMode: state.notebookSubMode,
+        notebookFormat: state.notebookFormat,
+        notebookLength: state.notebookLength,
+        notebookVisual: state.notebookVisual,
+        hostsFocus: $('hostsFocus') ? $('hostsFocus').value : ''
       };
     }
     function applyState(d) {
@@ -2635,6 +5246,95 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
           b.classList.toggle('active', b.dataset.quality === d.imgQuality);
         });
       }
+
+      // ============ v3.8: Restore AI target, sub-tab, Kad Ucapan, NotebookLM ============
+      if (d.aiTarget) {
+        state.aiTarget = d.aiTarget;
+        if ($('aiTarget')) $('aiTarget').value = d.aiTarget;
+        updateAiTargetHint();
+      }
+      if (d.subImej) {
+        state.subImej = d.subImej;
+        const isUmum = (d.subImej === 'umum');
+        if ($('subImejUmum')) {
+          $('subImejUmum').classList.toggle('active', isUmum);
+          $('subImejUmum').setAttribute('aria-selected', isUmum);
+        }
+        if ($('subKadUcapan')) {
+          $('subKadUcapan').classList.toggle('active', !isUmum);
+          $('subKadUcapan').setAttribute('aria-selected', !isUmum);
+        }
+        if ($('imejUmumPanel')) $('imejUmumPanel').style.display = isUmum ? '' : 'none';
+        if ($('kadUcapanPanel')) $('kadUcapanPanel').style.display = isUmum ? 'none' : '';
+      }
+      if (d.kadPerayaan) {
+        state.kadPerayaan = d.kadPerayaan;
+        if ($('kadPerayaan')) $('kadPerayaan').value = d.kadPerayaan;
+        updateKadPerayaanInfo();
+      }
+      if (d.kadTema) {
+        state.kadTema = d.kadTema;
+        if ($('kadTemaGrid')) {
+          $('kadTemaGrid').querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b.dataset.tema === d.kadTema);
+          });
+        }
+      }
+      if (d.kadAspect) {
+        state.kadAspect = d.kadAspect;
+        if ($('kadAspectGrid')) {
+          $('kadAspectGrid').querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b.dataset.kadAspect === d.kadAspect);
+          });
+        }
+      }
+      if (d.kadWatak) {
+        state.kadWatak = d.kadWatak;
+        if ($('kadWatak')) $('kadWatak').value = d.kadWatak;
+      }
+      if (d.kadPesanan !== undefined && $('kadPesanan')) $('kadPesanan').value = d.kadPesanan || '';
+      if (d.kadBahasaPesanan) {
+        state.kadBahasaPesanan = d.kadBahasaPesanan;
+        if ($('kadBahasaPesanan')) {
+          $('kadBahasaPesanan').querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b.dataset.bahasaPesanan === d.kadBahasaPesanan);
+          });
+        }
+      }
+      if (d.kadFace !== undefined) {
+        state.kadFace = !!d.kadFace;
+        if ($('kadFaceToggle')) $('kadFaceToggle').checked = state.kadFace;
+        if ($('kadFaceWarning')) $('kadFaceWarning').style.display = state.kadFace ? '' : 'none';
+      }
+      if (d.kadExtras !== undefined && $('kadExtras')) $('kadExtras').value = d.kadExtras || '';
+
+      // NotebookLM sub-mode restoration (call updateNotebookSubModeUI after to populate dependent selects)
+      if (d.notebookSubMode) {
+        state.notebookSubMode = d.notebookSubMode;
+        if ($('notebookSubModeGrid')) {
+          $('notebookSubModeGrid').querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b.dataset.submode === d.notebookSubMode);
+          });
+        }
+        if (state.mode === 'notebooklm') {
+          updateNotebookSubModeUI();
+        }
+      }
+      if (d.notebookFormat && $('notebookFormat')) {
+        state.notebookFormat = d.notebookFormat;
+        $('notebookFormat').value = d.notebookFormat;
+      }
+      if (d.notebookLength && $('notebookLength')) {
+        state.notebookLength = d.notebookLength;
+        $('notebookLength').value = d.notebookLength;
+      }
+      if (d.notebookVisual && $('notebookVisual')) {
+        state.notebookVisual = d.notebookVisual;
+        $('notebookVisual').value = d.notebookVisual;
+      }
+      if (d.hostsFocus !== undefined && $('hostsFocus')) $('hostsFocus').value = d.hostsFocus || '';
+
+      updateCaraGunaText();
     }
 
     // ============ HISTORY ============
@@ -2793,6 +5493,19 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       a.click();
     }
 
+    // ============ LAPORAN MODAL ============
+    function openLaporanModal() {
+      const modal = $('laporanModal');
+      if (modal) modal.classList.add('open');
+    }
+    function closeLaporanModal() {
+      const modal = $('laporanModal');
+      if (modal) modal.classList.remove('open');
+    }
+    // Expose globally for inline onclick handlers
+    window.openLaporanModal = openLaporanModal;
+    window.closeLaporanModal = closeLaporanModal;
+
     // ============ THEME ============
     function setTheme(theme) {
       state.theme = theme;
@@ -2824,7 +5537,8 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
         if (I18N[lang][key]) {
-          if (key === 'tipText' || key === 'kbdHelper') {
+          // Keys yang mengandungi HTML markup — perlu innerHTML, bukan textContent
+          if (key === 'tipText' || key === 'kbdHelper' || key === 'quantityNote' || key === 'imejSafetyBanner') {
             el.innerHTML = I18N[lang][key];
           } else {
             el.textContent = I18N[lang][key];
@@ -3098,6 +5812,15 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     // ============ EVENT BINDINGS ============
     function bindEvents() {
       $('modeGemini').addEventListener('click', () => setMode('gemini'));
+
+      // v3.8 Polish: Scroll sync untuk XML syntax highlighting overlay
+      const outputEl = $('output');
+      const highlightEl = $('outputHighlight');
+      if (outputEl && highlightEl) {
+        outputEl.addEventListener('scroll', () => {
+          highlightEl.scrollTop = outputEl.scrollTop;
+        });
+      }
       $('modeNotebook').addEventListener('click', () => setMode('notebooklm'));
       $('modeImej').addEventListener('click', () => setMode('imej'));
       $('objektif').addEventListener('change', () => {
@@ -3106,6 +5829,18 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         toggleObjektifLain();
       });
       $('bidang').addEventListener('change', onBidangChange);
+      // Auto-Rujukan toggle: re-apply when turned ON
+      if ($('autoRujukan')) {
+        $('autoRujukan').addEventListener('change', () => {
+          if ($('autoRujukan').checked) applyDefaultReference();
+        });
+      }
+      // Tahap change: re-apply auto reference (for tahap-specific refs)
+      if ($('tahap')) {
+        $('tahap').addEventListener('change', () => {
+          applyDefaultReference();
+        });
+      }
       $('subjek').addEventListener('change', () => {
         $('subjekLainWrap').style.display = ($('subjek').value === '__LAIN__') ? '' : 'none';
         if ($('subjek').value === '__LAIN__') setTimeout(() => $('subjekLain').focus(), 100);
@@ -3137,6 +5872,18 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('qrCloseBtn').addEventListener('click', closeQR);
       $('qrDownloadBtn').addEventListener('click', downloadQR);
       $('qrModal').addEventListener('click', (e) => { if (e.target.id === 'qrModal') closeQR(); });
+      // Laporan modal close behaviours
+      if ($('laporanModal')) {
+        $('laporanModal').addEventListener('click', (e) => {
+          if (e.target.id === 'laporanModal') closeLaporanModal();
+        });
+      }
+      // ESC key closes laporanModal too
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && $('laporanModal') && $('laporanModal').classList.contains('open')) {
+          closeLaporanModal();
+        }
+      });
 
       $('historyBtn').addEventListener('click', openDrawer);
       $('historyCloseBtn').addEventListener('click', closeDrawer);
@@ -3231,6 +5978,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       initVibes();
       initBahasa();
       initImageForm();
+      initNotebookSubMode();
       setMode('gemini');
       bindEvents();
       renderTemplates();
