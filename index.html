@@ -9,6 +9,17 @@
   <script>
     tailwind.config = { darkMode: 'class' }
   </script>
+  <!-- v3.8 patch: Apply theme BEFORE any rendering untuk elakkan FOUC.
+       Default LIGHT mode bila no saved preference (bukan ikut sistem). -->
+  <script>
+    (function() {
+      var savedTheme = localStorage.getItem('pintarai_theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+      // Else: default light mode (no class added)
+    })();
+  </script>
   <!-- QR library is lazy-loaded with multi-CDN fallback (see loadQRLibrary in JS) -->
   <!-- ============ ANALYTICS: Microsoft Clarity ============
        ✓ Configured for project: PintarAI Kedah (Project ID: wjuxg93dk4)
@@ -340,7 +351,7 @@
       position: absolute;
       inset: 0;
       margin: 0;
-      padding: 1.25rem; /* match textarea p-5 */
+      padding: 1.25rem 1.25rem 1.25rem 3rem; /* v3.8 C3: left padding extra untuk line gutter */
       font-family: 'Roboto Mono', 'Courier New', monospace;
       font-size: 0.82rem;
       line-height: 1.6;
@@ -352,6 +363,7 @@
       border: 1px solid transparent;
       border-radius: 1rem;
       z-index: 1;
+      transition: opacity 320ms cubic-bezier(0.2, 0, 0, 1); /* v3.8 A1: smooth empty state fade */
     }
     .output-wrapper > textarea.output-area {
       position: relative;
@@ -359,6 +371,8 @@
       color: transparent !important;
       caret-color: var(--md-on-surface);
       z-index: 2;
+      padding: 1.25rem 1.25rem 1.25rem 3rem; /* v3.8 C3: match highlight padding */
+      border: 1px solid var(--md-outline);
     }
     .output-wrapper::before {
       content: '';
@@ -367,6 +381,29 @@
       background: var(--md-surface-variant);
       border-radius: 1rem;
       z-index: 0;
+    }
+    /* v3.8 Phase 3 C3: Line numbers gutter — left side, monospace, dim */
+    .output-line-numbers {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 2.5rem;
+      padding: 1.25rem 0.5rem 1.25rem 0;
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: var(--md-on-surface-muted);
+      opacity: 0.5;
+      text-align: right;
+      pointer-events: none;
+      overflow: hidden;
+      white-space: pre;
+      z-index: 3;
+      border-right: 1px solid var(--md-outline);
+      box-sizing: border-box;
+      user-select: none;
+      transition: opacity 320ms;
     }
     /* Token colors */
     .tok-tag-open    { color: #94A3B8; font-weight: 500; }    /* < > brackets */
@@ -390,13 +427,27 @@
     ::-webkit-scrollbar-thumb { background: var(--md-outline); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
-    /* v3.8 Polish: Toast dengan spring physics (overshoot kemudian settle)
-       — Apple/iOS standard. Layered shadow untuk depth realistic. */
-    .toast {
+    /* v3.8 Phase 1 C1: Toast stack — multiple toasts queue dengan auto-dismiss */
+    .toast-stack {
       position: fixed;
       bottom: 2rem;
       left: 50%;
-      transform: translateX(-50%) translateY(150%) scale(0.85);
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column-reverse; /* newest on top */
+      align-items: center;
+      gap: 0.5rem;
+      pointer-events: none;
+      z-index: 60;
+      max-width: calc(100vw - 2rem);
+    }
+    .toast-stack > .toast { position: static; transform: translateY(150%) scale(0.85); pointer-events: auto; }
+    .toast-stack > .toast.show { transform: translateY(0) scale(1); }
+    /* Individual toast — inherit existing .toast styles */
+    .toast {
+      bottom: auto;
+      left: auto;
+      transform: translateY(150%) scale(0.85);
       background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
       color: white;
       padding: 0.95rem 1.65rem;
@@ -411,21 +462,237 @@
         0 32px 64px -16px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.12);
       opacity: 0;
-      /* Spring easing: overshoot then settle */
       transition:
         transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
         opacity 280ms cubic-bezier(0.2, 0, 0, 1);
-      z-index: 60;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
+      white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .toast.show {
-      transform: translateX(-50%) translateY(0) scale(1);
+      transform: translateY(0) scale(1);
       opacity: 1;
     }
     html.dark .toast {
       background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
       color: #0F172A;
+    }
+
+    /* v3.8 Phase 2 B2: Keyboard shortcut key styling */
+    .kbd-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.75rem;
+      padding: 0.15rem 0.5rem;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--md-on-surface);
+      background: var(--md-surface);
+      border: 1px solid var(--md-outline);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+      letter-spacing: 0.02em;
+    }
+    html.dark .kbd-key {
+      background: #475569;
+      border-color: #64748B;
+      color: #F1F5F9;
+    }
+
+    /* v3.8 Phase 3 D1: Jawi/Arabic script support — auto direction per line,
+       proper font fallback chain untuk Jawi rendering yang elegan. */
+    .output-area, .output-highlight {
+      font-family: 'Roboto Mono', 'Noto Naskh Arabic', 'Amiri', 'Scheherazade New', 'Traditional Arabic', 'Courier New', monospace;
+      unicode-bidi: plaintext; /* respect dir="auto" per line */
+    }
+    /* Bila baris ada Jawi chars, padding/alignment auto-adjust thanks to dir=auto */
+
+    /* v3.8 Phase 3 D1: RTL mode untuk Jawi/Arabic output */
+    .output-wrapper.rtl-mode > textarea.output-area,
+    .output-wrapper.rtl-mode > .output-highlight {
+      padding: 1.25rem; /* Reset padding-left (tiada gutter dalam RTL) */
+      text-align: right;
+      font-family: 'Roboto Mono', 'Noto Naskh Arabic', 'Scheherazade', 'Amiri', monospace;
+      font-size: 0.95rem; /* Slightly larger untuk Arabic readability */
+      line-height: 1.9;
+    }
+    .output-wrapper.rtl-mode > .output-highlight {
+      direction: rtl;
+    }
+
+    /* v3.8 Phase 3 C2: Smart tip box smooth transitions */
+    #smartTipIcon, #smartTipText {
+      transition: opacity 180ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* v3.8 Phase 2 B5: Onboarding Tour overlay */
+    .onboarding-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 320ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    /* v3.8 patch: Backdrop semi-transparent untuk dim background */
+    .onboarding-overlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      pointer-events: auto;
+    }
+    .onboarding-overlay.visible {
+      opacity: 1;
+    }
+    .onboarding-highlight {
+      position: absolute;
+      border-radius: 12px;
+      box-shadow:
+        0 0 0 4px rgba(16, 185, 129, 0.8),
+        0 0 0 9999px rgba(0, 0, 0, 0.65),
+        0 0 30px rgba(16, 185, 129, 0.5);
+      pointer-events: none;
+      transition:
+        top 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        left 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        width 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        height 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .onboarding-tooltip {
+      position: absolute;
+      max-width: 420px;
+      width: calc(100% - 2rem);
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      padding: 1.25rem 1.5rem;
+      border-radius: 16px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 12px 32px rgba(0, 0, 0, 0.4),
+        0 24px 60px -12px rgba(0, 0, 0, 0.5);
+      transition:
+        top 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        left 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 320ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .onboarding-progress {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--md-on-surface-muted);
+      margin-bottom: 0.65rem;
+      font-weight: 600;
+    }
+    .onboarding-skip {
+      background: transparent;
+      border: none;
+      color: var(--md-on-surface-muted);
+      font-size: 0.7rem;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      transition: all 180ms;
+    }
+    .onboarding-skip:hover {
+      color: var(--md-on-surface);
+      background: var(--md-surface-variant);
+    }
+    .onboarding-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--md-on-surface);
+      letter-spacing: -0.01em;
+    }
+    .onboarding-body {
+      font-size: 0.875rem;
+      line-height: 1.55;
+      color: var(--md-on-surface-muted);
+      margin-bottom: 1rem;
+    }
+    .onboarding-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+    .onboarding-actions button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* v3.8 Phase 2 B1: FAB Regenerate — sticky bottom-right untuk quick regenerate */
+    .fab-regenerate {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.25rem;
+      background: var(--md-primary);
+      color: white;
+      border: none;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      z-index: 50;
+      box-shadow:
+        0 0 0 1px rgba(5, 150, 105, 0.2),
+        0 4px 8px rgba(5, 150, 105, 0.25),
+        0 8px 16px -4px rgba(5, 150, 105, 0.3),
+        0 16px 32px -8px rgba(5, 150, 105, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      transition:
+        opacity 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 240ms cubic-bezier(0.2, 0, 0, 1),
+        background 240ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .fab-regenerate.entering {
+      opacity: 0;
+      transform: translateY(20px) scale(0.85);
+    }
+    .fab-regenerate.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .fab-regenerate:hover {
+      background: var(--md-primary-dark);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow:
+        0 0 0 1px rgba(5, 150, 105, 0.3),
+        0 8px 16px rgba(5, 150, 105, 0.35),
+        0 16px 32px -4px rgba(5, 150, 105, 0.4),
+        0 32px 64px -16px rgba(5, 150, 105, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+    .fab-regenerate:active {
+      transform: translateY(-1px) scale(0.97);
+      transition-duration: 80ms;
+    }
+    .fab-regenerate.spinning svg {
+      animation: spin-sync 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+    }
+    /* On mobile, hide label — just icon */
+    @media (max-width: 640px) {
+      .fab-regenerate {
+        padding: 0.85rem;
+        bottom: 1rem;
+        right: 1rem;
+      }
+      .fab-regenerate .fab-label {
+        display: none;
+      }
     }
 
     /* v3.8 Polish: Copy button morph animation (clipboard ↔ check).
@@ -861,6 +1128,11 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
             <span data-i18n="history">Sejarah</span>
           </button>
+          <!-- v3.8 Phase 2 B2: Keyboard shortcuts toggle -->
+          <button id="shortcutsBtn" class="md3-btn-outlined rounded-full px-3 py-2 text-xs font-semibold inline-flex items-center gap-1.5" title="Keyboard Shortcuts (Ctrl+/)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V9a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 9v6Zm-9-3.75h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm-3.75 0h.008v.008H8.25V15Zm3.75-3.75H8.25v.008H12v-.008ZM15 12h.008v.008H15V12Zm-7.5 0h.008v.008H7.5V12Zm-3.75 0H3v.008h.75V12ZM15 15h.008v.008H15V15Z"/></svg>
+            <span>⌨</span>
+          </button>
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-800 text-sm font-semibold dark:bg-emerald-900/40 dark:text-emerald-200">
             <span class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
@@ -876,11 +1148,11 @@
         </div>
       </div>
 
-      <div class="text-center sm:text-left max-w-4xl">
+      <div class="text-center sm:text-left max-w-5xl xl:max-w-none">
         <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight" style="color: var(--md-on-surface);">
           Pintar<span class="text-emerald-600 dark:text-emerald-400">AI</span> Kedah
         </h1>
-        <p class="mt-3 text-base sm:text-lg max-w-3xl leading-relaxed" style="color: var(--md-on-surface-muted);" data-i18n="subtitle">
+        <p class="mt-3 text-base sm:text-lg max-w-3xl lg:max-w-5xl xl:max-w-none leading-relaxed" style="color: var(--md-on-surface-muted);" data-i18n="subtitle">
           Platform kemahiran 'Prompt Engineering' untuk memperkasakan penggunaan AI dalam pendidikan.
         </p>
       </div>
@@ -900,7 +1172,7 @@
       </button>
       <button id="modeImej" class="seg-btn px-4 sm:px-5 py-2.5 rounded-full text-sm flex items-center gap-2"
               role="tab" aria-selected="false" aria-controls="imageForm" type="button">
-        <span class="text-lg">🎨</span> IMEJ
+        <span class="text-lg">🎨</span> <span data-i18n="modeImejLabel">IMEJ</span>
       </button>
     </div>
   </div>
@@ -921,7 +1193,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
       <!-- ========== LEFT PANEL ========== -->
-      <section class="md3-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <section id="leftPanel" class="md3-card rounded-3xl p-6 sm:p-8 space-y-6">
         <div class="flex items-center justify-between gap-3 pb-2 border-b" style="border-color: var(--md-outline);">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
@@ -1186,6 +1458,16 @@
         <!-- ========== IMAGE FORM (IMEJ Mode) — v3.8 with AI target + sub-tab ========== -->
         <div id="imageForm" class="space-y-6 hidden-smooth" style="display:none;">
 
+          <!-- v3.8 Phase 1 A5: Inspirasi cepat-pilih cards (4 popular use-cases untuk Imej Umum) -->
+          <div id="inspirasiPanel" class="rounded-2xl p-4 border" style="background: var(--md-surface); border-color: var(--md-outline);">
+            <div class="flex items-center gap-2 mb-3 flex-wrap">
+              <span class="text-base">💡</span>
+              <span class="text-sm font-bold" style="color: var(--md-on-surface);">Inspirasi Cepat</span>
+              <span class="text-xs font-normal" style="color: var(--md-on-surface-muted);">— klik untuk auto-isi subjek</span>
+            </div>
+            <div id="inspirasiGrid" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+          </div>
+
           <!-- AI Target Dropdown (NEW v3.8) - applies to both sub-tabs - PROMINENT design -->
           <div class="rounded-2xl p-5 border-2 shadow-sm" style="background: linear-gradient(135deg, var(--md-emerald-light, #d1fae5) 0%, var(--md-surface) 100%); border-color: var(--md-primary, #10b981);">
             <div class="flex items-center gap-2 mb-3 flex-wrap">
@@ -1199,15 +1481,6 @@
             <select id="aiTarget" class="md3-input w-full rounded-xl py-3 px-4 font-semibold text-base" style="background: white; border-width: 2px;"></select>
             <p id="aiTargetHint" class="mt-2.5 leading-relaxed text-sm p-2.5 rounded-lg" style="background: rgba(255,255,255,0.6); color: var(--md-on-surface);">
               <!-- Hint contextual dijana JS ikut AI dipilih -->
-            </p>
-          </div>
-
-          <!-- Safety Banner (always visible in Imej mode) -->
-          <div class="flex items-start gap-2.5 p-3 rounded-xl" style="background: #FEF3C7; border-left: 3px solid #F59E0B;">
-            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:#B45309;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z"/></svg>
-            <p class="text-xs leading-relaxed" style="color:#78350F;" data-i18n="imejSafetyBanner">
-              <strong>Penting:</strong> Fungsi ini hanya menjana arahan teks (prompt). Anda perlu generate imej di Gemini/AI lain.
-              <strong>Jangan guna wajah orang lain tanpa kebenaran</strong>. Untuk wajah pelajar, elakkan atau mohon dapatkan persetujuan bertulis ibu bapa. Elakkan kandungan politik, kontroversi, atau menghina mana-mana pihak (3R).
             </p>
           </div>
 
@@ -1287,10 +1560,21 @@
             <textarea id="imgExtras" rows="2" placeholder="Butiran spesifik: props, uniform, logo, warna objek tertentu..." class="md3-input w-full rounded-xl py-3 px-4 resize-none"></textarea>
           </div>
 
-          <!-- I11. Rujukan Gaya Artistik -->
+          <!-- I11. Rujukan Gaya Artistik (v3.8: Upgraded to dropdown + info modal) -->
           <div>
-            <label class="md3-label block mb-2">11. Rujukan Gaya Artistik <span class="font-normal" style="color: var(--md-on-surface-muted);">(Pilihan)</span></label>
-            <input type="text" id="imgStyleRef" placeholder="Cth: seperti Studio Ghibli, Pixar, National Geographic photography..." class="md3-input w-full rounded-xl py-3 px-4" />
+            <div class="flex items-center gap-2 mb-2">
+              <label class="md3-label flex-1" for="imgStyleRefSelect">11. Rujukan Gaya Artistik <span class="font-normal" style="color: var(--md-on-surface-muted);">(Pilihan)</span></label>
+              <button id="imgStyleRefInfoBtn" type="button" aria-label="Lihat contoh gaya artistik"
+                      class="rounded-full w-6 h-6 inline-flex items-center justify-center text-xs font-bold transition-all"
+                      style="background: var(--md-primary-container); color: var(--md-primary); border: 1.5px solid var(--md-primary);"
+                      title="Klik untuk lihat contoh setiap gaya artistik">
+                ⓘ
+              </button>
+            </div>
+            <select id="imgStyleRefSelect" class="md3-input w-full rounded-xl py-3 px-4 font-medium"></select>
+            <!-- Custom text input — hidden until 'Lain-lain' dipilih -->
+            <input type="text" id="imgStyleRef" placeholder="Cth: seperti Studio Ghibli, Pixar, National Geographic photography..."
+                   class="md3-input w-full rounded-xl py-3 px-4 mt-2 hidden-smooth" style="display:none;" />
           </div>
 
           <!-- I12. Elakkan (Negative) -->
@@ -1365,6 +1649,16 @@
                 <button data-bahasa-pesanan="jawi" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center" type="button">📜 Jawi</button>
                 <button data-bahasa-pesanan="dual" class="md3-chip rounded-full px-4 py-2 text-sm flex-1 text-center" type="button">🌐 Dwibahasa</button>
               </div>
+              <!-- v3.8 Phase 3 D1: Jawi notice (visual + RTL hint) -->
+              <div id="jawiNotice" class="mt-2 px-3 py-2 rounded-lg text-xs hidden-smooth" style="display:none; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #F59E0B; color: var(--md-on-surface);">
+                <div class="flex items-start gap-2">
+                  <span>📜</span>
+                  <div class="flex-1">
+                    <strong>Mod Jawi aktif.</strong> AI akan jana teks pesanan dalam tulisan Jawi (skrip Arab).
+                    Output akan dipaparkan secara <strong>kanan-ke-kiri (RTL)</strong> untuk baris yang mengandungi aksara Jawi.
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- K7. Personalisasi Wajah Toggle -->
@@ -1413,7 +1707,7 @@
         <div class="pt-4 space-y-3">
           <button id="generateBtn" class="md3-btn-primary w-full rounded-full py-4 px-6 font-bold text-base flex items-center justify-center gap-2.5 group">
             <svg class="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg>
-            <span data-i18n="btnGenerate">JANA ARAHAN SISTEM</span>
+            <span data-i18n="btnGenerate">JANA PROMPT</span>
           </button>
           <div class="flex gap-2">
             <button id="saveTemplateBtn" class="md3-btn-outlined flex-1 rounded-full py-2.5 px-4 text-sm font-semibold flex items-center justify-center gap-1.5">
@@ -1426,6 +1720,15 @@
             </button>
           </div>
           <p class="md3-helper text-center" data-i18n="kbdHelper">Tekan <kbd>Ctrl</kbd> + <kbd>Enter</kbd> untuk jana arahan pantas</p>
+
+          <!-- v3.8 patch: Safety Banner — pindah ke bawah JANA PROMPT untuk Imej mode -->
+          <div id="imejSafetyBannerWrap" class="flex items-start gap-2.5 p-3 rounded-xl mt-2" style="display:none; background: #FEF3C7; border-left: 3px solid #F59E0B;">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:#B45309;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z"/></svg>
+            <p class="text-xs leading-relaxed" style="color:#78350F;" data-i18n="imejSafetyBanner">
+              <strong>Penting:</strong> Fungsi ini hanya menjana arahan teks (prompt). Anda perlu generate imej di Gemini/AI lain.
+              <strong>Jangan guna wajah orang lain tanpa kebenaran</strong>. Untuk wajah pelajar, elakkan atau mohon dapatkan persetujuan bertulis ibu bapa. Elakkan kandungan politik, kontroversi, atau menghina mana-mana pihak (3R).
+            </p>
+          </div>
         </div>
       </section>
 
@@ -1437,7 +1740,7 @@
               <svg class="w-5 h-5 text-emerald-700 dark:text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"/></svg>
             </div>
             <div>
-              <h2 class="text-lg font-bold" data-i18n="outputTitle">Arahan Terhasil</h2>
+              <h2 class="text-lg font-bold" data-i18n="outputTitle">Hasil Prompt</h2>
               <p class="md3-helper" data-i18n="outputSubtitle">Struktur XML · Prompt Engineering</p>
             </div>
           </div>
@@ -1470,8 +1773,10 @@
         </div>
 
         <div class="output-wrapper" style="height: 500px; min-height: 400px;">
-          <pre id="outputHighlight" class="output-highlight" aria-hidden="true"></pre>
-          <textarea id="output" readonly placeholder="✨ Klik 'JANA ARAHAN SISTEM' untuk menghasilkan prompt terstruktur..." aria-label="Output prompt yang dijana" class="output-area w-full rounded-2xl p-5 border resize-none focus:ring-0 focus:outline-none" style="height: 100%;"></textarea>
+          <!-- v3.8 Phase 3 C3: Line number gutter (left side) -->
+          <div id="outputLineNumbers" class="output-line-numbers" aria-hidden="true"></div>
+          <pre id="outputHighlight" class="output-highlight" aria-hidden="true" dir="auto"></pre>
+          <textarea id="output" readonly dir="auto" placeholder="✨ Klik 'JANA PROMPT' untuk menghasilkan prompt terstruktur..." aria-label="Output prompt yang dijana" class="output-area w-full rounded-2xl resize-none focus:ring-0 focus:outline-none" style="height: 100%;"></textarea>
         </div>
 
         <!-- Counter Bar -->
@@ -1484,6 +1789,25 @@
             <span>≈ <span id="tokenCount" class="font-semibold">0</span> tokens</span>
           </div>
           <span id="contextBadge" class="hidden-smooth px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium dark:bg-green-900/40 dark:text-green-300" style="display:none;">OK</span>
+        </div>
+
+        <!-- v3.8 Phase 3 C4: Target indicator — bar progress menunjukkan optimal range per AI -->
+        <div id="targetIndicator" class="hidden-smooth mt-2 px-3 py-2 rounded-lg text-xs" style="display:none; background: var(--md-surface-variant);">
+          <div class="flex items-center justify-between mb-1.5">
+            <span id="targetIndicatorLabel" class="font-semibold" style="color: var(--md-on-surface);">Sasaran panjang</span>
+            <span id="targetIndicatorStatus" class="font-semibold"></span>
+          </div>
+          <div class="relative h-2 rounded-full overflow-hidden" style="background: rgba(0,0,0,0.08);">
+            <!-- Optimal zone marker (background) -->
+            <div id="targetOptimalZone" class="absolute h-full" style="background: rgba(5,150,105,0.18); top:0;"></div>
+            <!-- Current position bar -->
+            <div id="targetCurrentBar" class="absolute h-full rounded-full transition-all" style="background: var(--md-primary); top:0; left:0; width:0%; transition: width 320ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 240ms;"></div>
+          </div>
+          <div class="flex justify-between mt-1" style="color: var(--md-on-surface-muted); font-size: 0.65rem;">
+            <span id="targetIndicatorMin">0</span>
+            <span id="targetIndicatorHint" class="italic">—</span>
+            <span id="targetIndicatorMax">2000</span>
+          </div>
         </div>
 
         <!-- v3.8 Polish: Cara Guna Panel (Imej mode only) — separate dari prompt content.
@@ -1501,23 +1825,66 @@
           </div>
           <div class="p-4 space-y-2.5">
             <ol id="caraGunaSteps" class="space-y-2 text-sm" style="color: var(--md-on-surface);"></ol>
-            <a id="caraGunaLink" href="#" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full text-sm font-semibold transition-all"
-               style="background: var(--md-primary); color: white;">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-              <span id="caraGunaLinkLabel">Buka AI →</span>
-            </a>
+            <!-- v3.8 patch: Wrap kedua-dua butang dalam flex untuk alignment cantik -->
+            <div class="flex flex-wrap gap-2 mt-3">
+              <a id="caraGunaLink" href="#" target="_blank" rel="noopener noreferrer"
+                 class="md3-btn-outlined inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+                 style="border-color: var(--md-primary); color: var(--md-primary);">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                <span id="caraGunaLinkLabel">Buka AI →</span>
+              </a>
+              <!-- v3.8 Phase 1 A4: Smart "Salin & Buka" combo CTA — 1-click workflow -->
+              <button id="caraGunaSmartCta" type="button"
+                      class="md3-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                ⚡ Salin & Buka <span id="caraGunaSmartCtaAi">AI</span>
+              </button>
+            </div>
             <p id="caraGunaTipPro" class="hidden-smooth text-xs mt-3 p-2.5 rounded-lg leading-relaxed"
                style="display:none; background: #FEF3C7; color: #78350F; border-left: 3px solid #F59E0B;">
             </p>
           </div>
         </div>
 
-        <div class="mt-4 flex items-start gap-2.5 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-          <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/></svg>
-          <p class="text-xs text-blue-900 dark:text-blue-200 leading-relaxed" data-i18n="tipText">
-            <strong>Tips:</strong> Tampal arahan ini ke dalam Gemini atau NotebookLM. Semakin lengkap input anda, semakin berkualiti output AI.
+        <div id="smartTipBox" class="mt-4 flex items-start gap-2.5 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl transition-all" style="transition: background-color 320ms cubic-bezier(0.2, 0, 0, 1);">
+          <span id="smartTipIcon" class="text-base flex-shrink-0 mt-0.5" style="line-height:1;">💡</span>
+          <p id="smartTipText" class="text-xs text-blue-900 dark:text-blue-200 leading-relaxed flex-1">
+            <strong>Tip:</strong> Pilih mod AI di atas, lengkapkan field konfigurasi, kemudian klik <strong>Jana Prompt</strong>.
           </p>
+        </div>
+
+        <!-- v3.8 polish: AI Launcher Panel untuk text mode (Gemini/NotebookLM) -->
+        <div id="aiLauncherPanel" class="hidden-smooth mt-4 rounded-2xl border-2 overflow-hidden"
+             style="display:none; border-color: var(--md-primary); background: linear-gradient(135deg, var(--md-emerald-light) 0%, var(--md-surface) 100%);">
+          <div class="px-4 py-3 flex items-center gap-2 border-b" style="border-color: rgba(5,150,105,0.15); background: rgba(5,150,105,0.08);">
+            <svg class="w-5 h-5" style="color: var(--md-primary);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+            </svg>
+            <span class="font-bold text-sm flex-1" style="color: var(--md-on-surface);" id="aiLauncherTitle">Lancarkan AI</span>
+            <span id="aiLauncherBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full" style="background: var(--md-primary); color: white;"></span>
+          </div>
+          <div class="p-4">
+            <div id="aiLauncherSteps" class="space-y-2 text-sm mb-3" style="color: var(--md-on-surface);"></div>
+            <!-- v3.8 patch: Wrap dalam flex untuk alignment cantik -->
+            <div class="flex flex-wrap gap-2">
+              <a id="aiLauncherLink" href="#" target="_blank" rel="noopener noreferrer"
+                 class="md3-btn-outlined inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+                 style="border-color: var(--md-primary); color: var(--md-primary);">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                <span id="aiLauncherLinkLabel">Buka AI →</span>
+              </a>
+              <!-- v3.8 Phase 1 A4: Smart "Salin & Buka" combo CTA -->
+              <button id="aiLauncherSmartCta" type="button"
+                      class="md3-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                ⚡ Salin & Buka <span id="aiLauncherSmartCtaAi">AI</span>
+              </button>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -1622,8 +1989,116 @@
     </div>
   </footer>
 
+  <!-- v3.8 Phase 2 B5: Onboarding Tour Overlay -->
+  <div id="onboardingOverlay" class="onboarding-overlay" style="display:none;">
+    <div id="onboardingHighlight" class="onboarding-highlight"></div>
+    <div id="onboardingTooltip" class="onboarding-tooltip">
+      <div class="onboarding-progress">
+        <span id="onboardingStepCounter">1 / 5</span>
+        <button id="onboardingSkip" type="button" class="onboarding-skip" title="Langkau">Langkau Tour ✕</button>
+      </div>
+      <h3 id="onboardingTitle" class="onboarding-title"></h3>
+      <p id="onboardingBody" class="onboarding-body"></p>
+      <div class="onboarding-actions">
+        <button id="onboardingPrev" type="button" class="md3-btn-outlined rounded-full px-3 py-2 text-sm font-semibold">← Sebelum</button>
+        <button id="onboardingNext" type="button" class="md3-btn-primary rounded-full px-4 py-2 text-sm font-semibold">Seterusnya →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v3.8 Patch: Art Style Reference Info Modal (galeri contoh gaya artistik) -->
+  <div id="artStyleInfoModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 720px; max-height: 85vh; padding: 0; display: flex; flex-direction: column;">
+      <!-- Header tetap (non-scrolling) -->
+      <div class="flex items-center justify-between px-6 pt-6 pb-4" style="background: var(--md-surface); border-bottom: 1px solid var(--md-outline); flex-shrink: 0;">
+        <h3 class="text-xl font-bold flex items-center gap-2">
+          <span>🎨</span> Galeri Gaya Artistik
+        </h3>
+        <button id="artStyleInfoCloseBtn" class="md3-btn-outlined rounded-full w-9 h-9 flex items-center justify-center" title="Tutup">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Body scrollable -->
+      <div style="flex: 1 1 auto; overflow-y: auto; padding: 1rem 1.5rem 1.5rem 1.5rem;">
+        <p class="text-sm mb-4" style="color: var(--md-on-surface-muted);">
+          Pilih gaya artistik yang sesuai untuk imej anda. Klik mana-mana kad untuk auto-pilih.
+        </p>
+        <div id="artStyleInfoGrid" class="space-y-5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v3.8 Phase 2 B2: Keyboard Shortcuts Modal -->
+  <div id="shortcutsModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 540px;">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold flex items-center gap-2">
+          <span>⌨️</span> Keyboard Shortcuts
+        </h3>
+        <button id="shortcutsCloseBtn" class="md3-btn-outlined rounded-full w-9 h-9 flex items-center justify-center" title="Tutup">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="space-y-2 text-sm" style="color: var(--md-on-surface);">
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Ctrl</kbd><span>+</span><kbd class="kbd-key">Enter</kbd></div>
+          <span>Jana prompt</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Ctrl</kbd><span>+</span><kbd class="kbd-key">1</kbd></div>
+          <span>Mode Gemini</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Ctrl</kbd><span>+</span><kbd class="kbd-key">2</kbd></div>
+          <span>Mode NotebookLM</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Ctrl</kbd><span>+</span><kbd class="kbd-key">3</kbd></div>
+          <span>Mode Imej</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Ctrl</kbd><span>+</span><kbd class="kbd-key">K</kbd></div>
+          <span>Fokus pada field Topik</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Alt</kbd><span>+</span><kbd class="kbd-key">R</kbd></div>
+          <span>Reset form (dengan konfirmasi)</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Ctrl</kbd><span>+</span><kbd class="kbd-key">/</kbd></div>
+          <span>Buka/tutup panel ini</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 items-center py-2 px-3 rounded-lg" style="background: var(--md-surface-variant);">
+          <div class="flex gap-1"><kbd class="kbd-key">Esc</kbd></div>
+          <span>Tutup mana-mana modal</span>
+        </div>
+      </div>
+      <p class="text-xs mt-4 text-center" style="color: var(--md-on-surface-muted);">
+        💡 Pada Mac, gantikan <kbd class="kbd-key">Ctrl</kbd> dengan <kbd class="kbd-key">⌘ Cmd</kbd>
+      </p>
+      <!-- v3.8 B5: Replay tour button -->
+      <div class="flex justify-center mt-4">
+        <button id="replayTourBtn" type="button" class="md3-btn-outlined rounded-full px-4 py-2 text-sm font-semibold inline-flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          🎓 Tonton Tour Pengenalan Semula
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v3.8 Phase 2 B1: FAB Regenerate — sticky bottom-right untuk quick regenerate -->
+  <button id="fabRegenerate" type="button" aria-label="Jana semula dengan setting sekarang"
+          title="Jana semula prompt (Ctrl+Enter)"
+          class="fab-regenerate" style="display:none;">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+    </svg>
+    <span class="fab-label">Jana Semula</span>
+  </button>
+
   <!-- Toast -->
-  <div id="toast" class="toast"></div>
+  <!-- v3.8 Phase 1 C1: Toast stack container (max 3 visible, queue overflow) -->
+  <div id="toastStack" class="toast-stack"></div>
 
   <!-- QR Modal -->
   <div id="qrModal" class="modal-backdrop">
@@ -1647,7 +2122,25 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
       </button>
     </div>
-    <p class="md3-helper mb-4" data-i18n="historyHelper">5 arahan terakhir anda tersimpan di peranti ini.</p>
+    <p class="md3-helper mb-3" data-i18n="historyHelper">5 arahan terakhir anda tersimpan di peranti ini.</p>
+
+    <!-- v3.8 Phase 3 C5: Search input + filter chips -->
+    <div class="mb-3 space-y-2">
+      <div class="relative">
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style="color: var(--md-on-surface-muted);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+        </svg>
+        <input id="historySearch" type="text" placeholder="Cari topik atau kandungan..." class="md3-input w-full rounded-xl py-2 pl-9 pr-3 text-sm" />
+      </div>
+      <div id="historyFilterChips" class="flex gap-1.5 flex-wrap">
+        <button data-hist-filter="all" class="md3-chip active rounded-full px-3 py-1 text-xs" type="button">📋 Semua</button>
+        <button data-hist-filter="gemini" class="md3-chip rounded-full px-3 py-1 text-xs" type="button">🪄 Gemini</button>
+        <button data-hist-filter="notebooklm" class="md3-chip rounded-full px-3 py-1 text-xs" type="button">🎙️ NotebookLM</button>
+        <button data-hist-filter="imej" class="md3-chip rounded-full px-3 py-1 text-xs" type="button">🎨 Imej</button>
+      </div>
+      <div id="historyResultCount" class="text-xs" style="color: var(--md-on-surface-muted);"></div>
+    </div>
+
     <div id="historyList" class="space-y-3"></div>
   </div>
 
@@ -2674,6 +3167,817 @@ D) 4 botol, 7/18 liter tinggal
       'Dwibahasa': 'Sediakan dalam dwibahasa: Bahasa Melayu sebagai teks utama, dengan terjemahan Bahasa Inggeris di bawah setiap bahagian utama (atau dalam kurungan untuk istilah teknikal).'
     };
 
+    // ============ v3.8 Phase 3 D1: Jawi/Arabic RTL Support ============
+    // Detect kalau output ada significant Jawi/Arabic content → apply dir="rtl".
+    // Trigger: bila state.kadBahasaPesanan === 'jawi'/'dual', atau auto-detect via Unicode.
+    function detectRtl(text) {
+      if (!text || typeof text !== 'string') return false;
+      // Sample first 2000 chars untuk perf
+      const sample = text.substring(0, 2000);
+      // Arabic Unicode blocks: 0x0600-0x06FF, 0x0750-0x077F, 0xFB50-0xFDFF, 0xFE70-0xFEFF
+      let arabicCount = 0;
+      let latinCount = 0;
+      for (let i = 0; i < sample.length; i++) {
+        const code = sample.charCodeAt(i);
+        if ((code >= 0x0600 && code <= 0x06FF) ||
+            (code >= 0x0750 && code <= 0x077F) ||
+            (code >= 0xFB50 && code <= 0xFDFF) ||
+            (code >= 0xFE70 && code <= 0xFEFF)) {
+          arabicCount++;
+        } else if ((code >= 0x0041 && code <= 0x005A) || (code >= 0x0061 && code <= 0x007A)) {
+          latinCount++;
+        }
+      }
+      // Threshold: kalau Arabic dominan (>30% of letter content), treat as RTL
+      const totalLetters = arabicCount + latinCount;
+      if (totalLetters < 20) return false; // Too short to determine
+      return (arabicCount / totalLetters) > 0.3;
+    }
+
+    function applyRtlIfNeeded(text) {
+      const outputEl = $('output');
+      const highlightEl = $('outputHighlight');
+      const linesEl = $('outputLineNumbers');
+      const wrapperEl = outputEl ? outputEl.closest('.output-wrapper') : null;
+
+      // Also force RTL kalau user pilih kad Bahasa Pesanan Jawi
+      const forceRtl = (state.kadBahasaPesanan === 'jawi' || state.kadBahasaPesanan === 'dual')
+                       && state.mode === 'imej' && state.subImej === 'kad';
+
+      const isRtl = forceRtl || detectRtl(text);
+
+      if (outputEl) outputEl.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+      if (highlightEl) highlightEl.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+      // Line numbers: hide dalam RTL mode (logical complexity tinggi untuk both sides)
+      if (linesEl) linesEl.style.display = isRtl ? 'none' : '';
+      // Adjust padding bila RTL — gutter padding tak perlu
+      if (wrapperEl) wrapperEl.classList.toggle('rtl-mode', isRtl);
+    }
+
+    // ============ v3.8 Phase 3 C4: Target Indicator (Optimal Length per AI) ============
+    // Setiap AI ada optimal token/char range. Indicator tunjuk:
+    // - Progress bar dengan colored zones (red/yellow/green/yellow/red)
+    // - Status: "Terlalu Pendek" / "Optimal" / "Terlalu Panjang"
+    function getCurrentTargetProfile() {
+      // Return: { unit, min, max, optimalMin, optimalMax, hint, type }
+      const mode = state.mode;
+
+      if (mode === 'imej') {
+        // Image prompt — different per AI target
+        const ai = state.aiTarget || 'gemini';
+        if (ai === 'midjourney') {
+          return {
+            unit: 'tokens',
+            min: 0, max: 200,
+            optimalMin: 30, optimalMax: 100,
+            hint: 'Midjourney optimal ~30-100 tokens',
+            type: 'tokens'
+          };
+        }
+        return {
+          unit: 'tokens',
+          min: 0, max: 800,
+          optimalMin: 100, optimalMax: 500,
+          hint: 'Imej prompt optimal ~100-500 tokens',
+          type: 'tokens'
+        };
+      }
+
+      if (mode === 'notebooklm') {
+        if (state.compactMode) {
+          // Customize box — HARD LIMIT 500 chars
+          return {
+            unit: 'aksara',
+            min: 0, max: 500,
+            optimalMin: 200, optimalMax: 450,
+            hint: 'Customize Box NotebookLM (hard limit 500 aksara)',
+            type: 'chars'
+          };
+        }
+        return {
+          unit: 'tokens',
+          min: 0, max: 3000,
+          optimalMin: 300, optimalMax: 1500,
+          hint: 'NotebookLM chat box optimal ~300-1500 tokens',
+          type: 'tokens'
+        };
+      }
+
+      // Default: Gemini text mode
+      return {
+        unit: 'tokens',
+        min: 0, max: 4000,
+        optimalMin: 500, optimalMax: 2500,
+        hint: 'Gemini optimal ~500-2500 tokens',
+        type: 'tokens'
+      };
+    }
+
+    function updateTargetIndicator(chars, tokens) {
+      const indicator = $('targetIndicator');
+      if (!indicator) return;
+
+      // Don't show kalau output kosong
+      if (chars === 0) {
+        indicator.style.display = 'none';
+        return;
+      }
+      indicator.style.display = '';
+
+      const profile = getCurrentTargetProfile();
+      const current = profile.type === 'chars' ? chars : tokens;
+      const pct = Math.min(100, (current / profile.max) * 100);
+      const optimalMinPct = (profile.optimalMin / profile.max) * 100;
+      const optimalMaxPct = (profile.optimalMax / profile.max) * 100;
+
+      // Set optimal zone width + position
+      const zoneEl = $('targetOptimalZone');
+      if (zoneEl) {
+        zoneEl.style.left = optimalMinPct + '%';
+        zoneEl.style.width = (optimalMaxPct - optimalMinPct) + '%';
+      }
+
+      // Set current bar
+      const barEl = $('targetCurrentBar');
+      if (barEl) barEl.style.width = pct + '%';
+
+      // Determine status color
+      let status, statusColor, barColor;
+      if (current < profile.optimalMin) {
+        status = 'Terlalu Pendek';
+        statusColor = '#B45309';
+        barColor = '#F59E0B';
+      } else if (current > profile.optimalMax) {
+        if (profile.type === 'chars' && current > profile.max) {
+          status = '⚠️ Melebihi Had!';
+          statusColor = '#DC2626';
+          barColor = '#DC2626';
+        } else {
+          status = 'Terlalu Panjang';
+          statusColor = '#B45309';
+          barColor = '#F59E0B';
+        }
+      } else {
+        status = '✓ Optimal';
+        statusColor = 'var(--md-primary)';
+        barColor = 'var(--md-primary)';
+      }
+
+      if (barEl) barEl.style.background = barColor;
+
+      // Update labels
+      const labelEl = $('targetIndicatorLabel');
+      const statusEl = $('targetIndicatorStatus');
+      const minEl = $('targetIndicatorMin');
+      const maxEl = $('targetIndicatorMax');
+      const hintEl = $('targetIndicatorHint');
+
+      if (labelEl) labelEl.textContent = `${current.toLocaleString()} ${profile.unit}`;
+      if (statusEl) {
+        statusEl.textContent = status;
+        statusEl.style.color = statusColor;
+      }
+      if (minEl) minEl.textContent = '0';
+      if (maxEl) maxEl.textContent = profile.max.toLocaleString();
+      if (hintEl) hintEl.textContent = profile.hint;
+    }
+    // Tip box berubah ikut state user — bawah action terkini, suggest next step.
+    // Trigger via setSmartTip(key) di tempat-tempat strategic dalam app.
+    const SMART_TIPS = {
+      'initial': {
+        icon: '💡',
+        html: '<strong>Tip:</strong> Pilih mod AI di atas, lengkapkan field konfigurasi, kemudian klik <strong>Jana Prompt</strong>.'
+      },
+      'mode-gemini': {
+        icon: '🪄',
+        html: '<strong>Mod Gemini:</strong> Sesuai untuk jana soalan, slide, rubrik, surat dan teks struktur. Tekan <kbd class="kbd-key">Ctrl</kbd>+<kbd class="kbd-key">Enter</kbd> untuk jana pantas.'
+      },
+      'mode-notebooklm': {
+        icon: '🎙️',
+        html: '<strong>Mod NotebookLM:</strong> Anda perlu upload sumber rujukan (PDF, DOCX, link) dahulu di NotebookLM, kemudian tampal prompt ini.'
+      },
+      'mode-imej': {
+        icon: '🎨',
+        html: '<strong>Mod Imej:</strong> Pilih AI sasaran (Gemini paling sesuai untuk teks BM/Jawi), kemudian huraikan subjek imej dengan jelas.'
+      },
+      'after-generate': {
+        icon: '✨',
+        html: '<strong>Prompt siap dijana!</strong> Klik butang <strong>⚡ Salin & Buka AI</strong> untuk salin + buka tab AI dengan satu klik.'
+      },
+      'after-copy': {
+        icon: '📋',
+        html: '<strong>Disalin ke clipboard!</strong> Tampal di Gemini/NotebookLM/AI lain. Kemudian boleh klik <strong>Jana Semula</strong> kalau perlu tweak.'
+      },
+      'after-refine': {
+        icon: '♻️',
+        html: '<strong>Output dinaiktaraf!</strong> Anda boleh simpan sebagai template (butang <strong>Simpan Template</strong>) untuk guna semula nanti.'
+      },
+      'long-prompt': {
+        icon: '📏',
+        html: '<strong>Prompt panjang detected.</strong> Untuk NotebookLM Customize box, aktifkan <strong>Mod Customize</strong> supaya output ≤500 aksara.'
+      },
+      'first-history': {
+        icon: '📚',
+        html: '<strong>Sejarah disimpan!</strong> 5 prompt terakhir akan tersedia dalam butang <strong>Sejarah</strong> di atas — klik untuk muat semula.'
+      }
+    };
+
+    function setSmartTip(key) {
+      const tip = SMART_TIPS[key] || SMART_TIPS['initial'];
+      const iconEl = $('smartTipIcon');
+      const textEl = $('smartTipText');
+      if (!iconEl || !textEl) return;
+
+      // Quick fade animation
+      textEl.style.opacity = '0';
+      iconEl.style.opacity = '0';
+      setTimeout(() => {
+        iconEl.textContent = tip.icon;
+        textEl.innerHTML = tip.html;
+        textEl.style.opacity = '1';
+        iconEl.style.opacity = '1';
+      }, 180);
+    }
+
+    // ============ v3.8 Phase 2 B5: Onboarding Tour ============
+    // 5-step interactive tour untuk first-time visitors.
+    // localStorage flag pintarai_onboarded_v1 — once seen, tak ulang lagi.
+    const LS_ONBOARDED = 'pintarai_onboarded_v1';
+    const ONBOARDING_STEPS = [
+      {
+        target: '.segmented[aria-label="Mod Pengguna"]',
+        title: '🎯 Pilih Mod AI Sasaran',
+        body: 'Ada 3 mod utama: <strong>Gemini</strong> untuk teks umum, <strong>NotebookLM</strong> untuk transformasi sumber rujukan (slide/audio/video/mind map), dan <strong>Imej</strong> untuk jana arahan imej AI (4 AI: Gemini/ChatGPT/Copilot/Midjourney).',
+        position: 'bottom'
+      },
+      {
+        target: '#leftPanel',
+        title: '📝 Isi Field Konfigurasi',
+        body: 'Lebih lengkap field anda isi, lebih berkualiti output AI. Field bertanda * adalah wajib. Sistem akan auto-save draf setiap 3 saat — boleh pulihkan kalau pelayar ditutup tanpa sengaja.',
+        position: 'right'
+      },
+      {
+        target: '#generateBtn',
+        title: '✨ Jana Arahan',
+        body: 'Klik untuk jana prompt berstruktur. Anda juga boleh tekan <kbd class="kbd-key">Ctrl</kbd> + <kbd class="kbd-key">Enter</kbd> sebagai shortcut. Output akan muncul di kanan dengan XML syntax highlighting.',
+        position: 'top'
+      },
+      {
+        target: '#copyBtn',
+        title: '📋 Salin & Buka AI',
+        body: 'Selepas jana prompt, klik butang Salin atau gunakan butang "⚡ Salin & Buka [AI]" untuk salin + buka tab AI dengan satu klik. Selamat mencuba! 🚀',
+        position: 'left'
+      }
+    ];
+    let onboardingCurrentStep = 0;
+
+    function isOnboarded() {
+      return localStorage.getItem(LS_ONBOARDED) === '1';
+    }
+    function markOnboarded() {
+      localStorage.setItem(LS_ONBOARDED, '1');
+    }
+    function resetOnboarding() {
+      localStorage.removeItem(LS_ONBOARDED);
+    }
+
+    function startOnboarding() {
+      onboardingCurrentStep = 0;
+      showOnboardingStep._missedCount = 0;
+      const overlay = $('onboardingOverlay');
+      if (!overlay) return;
+      // Display first, then double-rAF + add visible class untuk smooth fade-in
+      overlay.style.display = '';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        // Show first step AFTER overlay rendered (avoid measure bug)
+        showOnboardingStep(0);
+      }));
+    }
+
+    function endOnboarding(completed) {
+      const overlay = $('onboardingOverlay');
+      if (!overlay) return;
+      overlay.classList.remove('visible');
+      setTimeout(() => { overlay.style.display = 'none'; }, 320);
+      if (completed) {
+        markOnboarded();
+        showToast('🎉 Selesai tour! Selamat menggunakan PintarAI Kedah.');
+      }
+      track('Onboarding', { action: completed ? 'complete' : 'skip', step: onboardingCurrentStep });
+    }
+
+    function showOnboardingStep(stepIdx) {
+      const step = ONBOARDING_STEPS[stepIdx];
+      if (!step) {
+        endOnboarding(true);
+        return;
+      }
+
+      onboardingCurrentStep = stepIdx;
+
+      // Update tooltip content
+      $('onboardingStepCounter').textContent = `${stepIdx + 1} / ${ONBOARDING_STEPS.length}`;
+      $('onboardingTitle').textContent = step.title;
+      $('onboardingBody').innerHTML = step.body;
+      $('onboardingPrev').disabled = (stepIdx === 0);
+      $('onboardingNext').textContent = (stepIdx === ONBOARDING_STEPS.length - 1) ? 'Selesai ✓' : 'Seterusnya →';
+
+      // v3.8 patch: Retry guard — kalau target tak ada, end tour gracefully (jangan infinite loop)
+      const target = document.querySelector(step.target);
+      if (!target) {
+        console.warn('[Onboarding] Target tak ditemui, langkau ke langkah seterusnya:', step.target);
+        // Try next step; kalau gagal lagi 2x, end tour
+        if (!showOnboardingStep._missedCount) showOnboardingStep._missedCount = 0;
+        showOnboardingStep._missedCount++;
+        if (showOnboardingStep._missedCount >= 3) {
+          console.warn('[Onboarding] Terlalu banyak langkah dilangkau. Tour berakhir.');
+          endOnboarding(false);
+          markOnboarded();
+          showOnboardingStep._missedCount = 0;
+          return;
+        }
+        // Skip ke step seterusnya
+        return showOnboardingStep(stepIdx + 1);
+      }
+      showOnboardingStep._missedCount = 0; // reset bila target found
+
+      // v3.8 patch: Determine scroll behavior berdasarkan situasi
+      // - Pada step pertama, kalau target dah dalam viewport: skip scroll (avoid jitter)
+      // - Otherwise: smooth scroll
+      const initialRect = target.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+      const isAlreadyInView = (initialRect.top >= 0 && initialRect.bottom <= viewportH);
+      const scrollDuration = isAlreadyInView ? 0 : 500;
+
+      if (!isAlreadyInView) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      }
+
+      // Wait for scroll to complete THEN measure + position (use rAF chain for reliability)
+      const positionElements = () => {
+        const rect = target.getBoundingClientRect();
+        const padding = 8;
+        const viewportW = window.innerWidth;
+        const isMobile = viewportW < 768;
+
+        // ── Position highlight ──
+        const highlight = $('onboardingHighlight');
+        highlight.style.top = `${Math.max(0, rect.top - padding)}px`;
+        highlight.style.left = `${Math.max(0, rect.left - padding)}px`;
+        highlight.style.width = `${rect.width + padding * 2}px`;
+        highlight.style.height = `${rect.height + padding * 2}px`;
+
+        // ── Position tooltip ──
+        const tooltip = $('onboardingTooltip');
+
+        // FORCE tooltip ke layout state yang valid sebelum measure
+        // (penting: tooltip mungkin baru-baru dipaparkan dan tak settle)
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.top = '0';
+        tooltip.style.left = '0';
+
+        // Use rAF chain to ensure browser has done layout
+        requestAnimationFrame(() => {
+          const tooltipRect = tooltip.getBoundingClientRect();
+          const tooltipH = tooltipRect.height || 200;
+          const tooltipW = Math.min(420, viewportW - 32);
+
+          let top, left;
+
+          // ── Mobile-first: pada small screens, tooltip selalu di bawah tengah ──
+          if (isMobile) {
+            // Bottom-fixed pada mobile untuk avoid overflow
+            top = Math.min(viewportH - tooltipH - 16, rect.bottom + 16);
+            // Kalau target dekat bottom, position above
+            if (rect.bottom + tooltipH + 32 > viewportH) {
+              top = Math.max(16, rect.top - tooltipH - 16);
+            }
+            left = (viewportW - tooltipW) / 2;
+          } else {
+            // Desktop: ikut step.position preference
+            if (step.position === 'top') {
+              top = rect.top - tooltipH - 16;
+            } else if (step.position === 'right' && rect.right + tooltipW + 16 < viewportW) {
+              top = rect.top;
+              left = rect.right + 16;
+            } else if (step.position === 'left' && rect.left - tooltipW - 16 > 0) {
+              top = rect.top;
+              left = rect.left - tooltipW - 16;
+            } else {
+              // Default: bottom
+              top = rect.bottom + 16;
+            }
+
+            // Kalau left tak set lagi, center horizontally on target
+            if (left === undefined) {
+              left = rect.left + rect.width / 2 - tooltipW / 2;
+            }
+          }
+
+          // ── HARD CLAMP ke viewport (tooltip TAK BOLEH overflow) ──
+          top = Math.max(16, Math.min(top, viewportH - tooltipH - 16));
+          left = Math.max(16, Math.min(left, viewportW - tooltipW - 16));
+
+          // Apply position + show
+          tooltip.style.top = `${top}px`;
+          tooltip.style.left = `${left}px`;
+          tooltip.style.visibility = '';
+        });
+      };
+
+      // Wait for scroll completion before positioning
+      if (scrollDuration === 0) {
+        // Already in view — position immediately on next frame
+        requestAnimationFrame(() => requestAnimationFrame(positionElements));
+      } else {
+        // Wait scroll + extra buffer untuk layout settle
+        setTimeout(() => requestAnimationFrame(positionElements), scrollDuration + 100);
+      }
+    }
+
+    function initOnboardingHandlers() {
+      const nextBtn = $('onboardingNext');
+      const prevBtn = $('onboardingPrev');
+      const skipBtn = $('onboardingSkip');
+
+      if (nextBtn) nextBtn.addEventListener('click', () => {
+        showOnboardingStep(onboardingCurrentStep + 1);
+      });
+      if (prevBtn) prevBtn.addEventListener('click', () => {
+        if (onboardingCurrentStep > 0) showOnboardingStep(onboardingCurrentStep - 1);
+      });
+      if (skipBtn) skipBtn.addEventListener('click', () => {
+        endOnboarding(false);
+        markOnboarded(); // Treat skip as "I've seen it, don't show again"
+      });
+
+      // Esc to close
+      document.addEventListener('keydown', (e) => {
+        const overlay = $('onboardingOverlay');
+        if (e.key === 'Escape' && overlay && overlay.classList.contains('visible')) {
+          endOnboarding(false);
+          markOnboarded();
+        }
+      });
+    }
+
+    function maybeStartOnboarding() {
+      // Skip kalau sudah onboarded ATAU ada draft (user dah experienced)
+      if (isOnboarded()) return;
+      const draft = getDraft();
+      if (hasSignificantDraft(draft)) return;
+      // Wait 1.5s for UI to settle, then start
+      setTimeout(startOnboarding, 1500);
+    }
+    // ============ v3.8 Phase 1 A5: Inspirasi cepat-pilih untuk Imej mode ============
+    // 4 popular use-cases — klik = auto-fill imgSubject + scroll ke form
+    const INSPIRATION_CARDS = [
+      {
+        id: 'cikgu-kelas',
+        emoji: '👩‍🏫',
+        label: 'Cikgu di Kelas',
+        gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+        subject: 'Cikgu wanita Melayu pertengahan umur, berpakaian baju kurung, mengajar di hadapan papan tulis hijau dalam kelas Sekolah Menengah, suasana ceria dan profesional, pelajar Tingkatan 4 mendengar dengan teliti'
+      },
+      {
+        id: 'pelajar-makmal',
+        emoji: '🧪',
+        label: 'Pelajar di Makmal',
+        gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+        subject: 'Sekumpulan 3 pelajar Tingkatan 4 (campuran Melayu, Cina, India) berpakaian uniform sekolah dan kot makmal putih, menjalankan eksperimen kimia dengan kelalang kon dan pipet di makmal Sains, fokus dan teruja'
+      },
+      {
+        id: 'pengetua-majlis',
+        emoji: '🎓',
+        label: 'Pengetua di Majlis',
+        gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+        subject: 'Pengetua sekolah lelaki berbaju batik formal sedang menyampaikan ucapan di podium dalam dewan sekolah, latar belakang Jalur Gemilang dan logo sekolah, pelajar dan guru duduk mendengar, suasana rasmi'
+      },
+      {
+        id: 'aktiviti-padang',
+        emoji: '⚽',
+        label: 'Aktiviti Padang',
+        gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+        subject: 'Pelajar Sekolah Menengah berpakaian sukan rumah (jersey merah, biru, hijau, kuning) sedang menyertai Hari Sukan Tahunan, berlari di trek padang sekolah, bendera rumah berkibar, suasana ceria dan bersemangat'
+      }
+    ];
+
+    // ============ v3.8 PATCH: ART STYLE REFERENCES (Magic Hour + Adobe Firefly) ============
+    // 30 gaya artistik popular dipilih berdasarkan AI art guides Magic Hour & Adobe Firefly.
+    // Grouped by kategori untuk navigasi dropdown yang lebih bersih.
+    // Setiap entry ada deskripsi BM untuk modal galeri.
+    const ART_STYLE_REFERENCES = [
+      // === Fotografik ===
+      { id: 'photorealistic',  cat: 'Fotografik',          emoji: '📸',
+        label: 'Photorealistic / Fotorealistik',
+        promptKw: 'photorealistic, ultra-realistic, sharp detail, natural lighting, DSLR photography quality',
+        desc: 'Imej realistik seperti foto sebenar — pencahayaan natural, detail tinggi, tekstur tepat. Sesuai untuk: dokumentari, ilustrasi sains, infografik realistik.' },
+      { id: 'cinematic',       cat: 'Fotografik',          emoji: '🎬',
+        label: 'Cinematic / Sinematik (Filem)',
+        promptKw: 'cinematic shot, dramatic lighting, film still, shallow depth of field, movie poster aesthetic',
+        desc: 'Gaya seperti adegan filem — pencahayaan dramatik, kedalaman komposisi, warna warm/cool stylized. Sesuai untuk: poster majlis, ilustrasi cerita berkesan.' },
+      { id: 'national-geo',    cat: 'Fotografik',          emoji: '🌍',
+        label: 'National Geographic',
+        promptKw: 'National Geographic style photography, documentary photo, journalistic, candid moment, telephoto compression',
+        desc: 'Gaya fotografi dokumentari National Geographic — autentik, naturalistik, fokus subjek manusia/alam. Sesuai untuk: cerita budaya, infografik geografi.' },
+      { id: 'bw-photo',        cat: 'Fotografik',          emoji: '⚫',
+        label: 'Hitam Putih / Monochrome',
+        promptKw: 'black and white photography, high contrast monochrome, classic film photo, Ansel Adams style',
+        desc: 'Fotografi hitam putih klasik — kontras tinggi, mood serius/nostalgia, focus pada bentuk dan tekstur.' },
+      { id: 'vintage-polaroid',cat: 'Fotografik',          emoji: '📷',
+        label: 'Vintage / Polaroid',
+        promptKw: 'vintage polaroid photograph, retro 70s color grading, faded edges, nostalgic film grain',
+        desc: 'Foto vintage seperti Polaroid 70s/80s — warna fade, butiran film grain, mood nostalgia.' },
+
+      // === Lukisan Klasik ===
+      { id: 'oil-painting',    cat: 'Lukisan Klasik',      emoji: '🖼️',
+        label: 'Oil Painting / Lukisan Minyak',
+        promptKw: 'oil painting, thick impasto brush strokes, rich textures, Renaissance master quality, museum artwork',
+        desc: 'Lukisan minyak klasik gaya master Eropah (Van Gogh, Rembrandt) — sapuan berus tebal, warna kaya, tekstur ketara.' },
+      { id: 'watercolor',      cat: 'Lukisan Klasik',      emoji: '💧',
+        label: 'Watercolor / Cat Air',
+        promptKw: 'watercolor painting, soft color washes, paper texture, loose brush strokes, gentle gradients',
+        desc: 'Lukisan cat air — warna lembut, sapuan loose, tekstur kertas kelihatan. Sesuai untuk buku kanak-kanak, kad ucapan.' },
+      { id: 'acrylic',         cat: 'Lukisan Klasik',      emoji: '🎨',
+        label: 'Acrylic Painting',
+        promptKw: 'acrylic painting, bold opaque colors, vibrant pigments, modern fine art style',
+        desc: 'Lukisan akrilik — warna pekat & cerah, banyak digunakan dalam seni moden. Lebih vibrant berbanding cat air.' },
+      { id: 'pastel',          cat: 'Lukisan Klasik',      emoji: '🌸',
+        label: 'Pastel Soft',
+        promptKw: 'soft pastel drawing, chalky texture, gentle blending, dreamy atmosphere',
+        desc: 'Pastel kapur lembut — tekstur chalky, blending lembut, suasana lembut/mimpi. Sesuai untuk: ilustrasi puisi, latar mood tenang.' },
+
+      // === Lakaran & Lukisan ===
+      { id: 'pencil-sketch',   cat: 'Lakaran & Lukisan',   emoji: '✏️',
+        label: 'Pencil Sketch / Lakaran Pensel',
+        promptKw: 'graphite pencil sketch, hand-drawn, cross-hatching, detailed shading, sketchbook style',
+        desc: 'Lakaran pensel hitam putih — cross-hatching, shading butiran. Sesuai untuk: diagram sains, ilustrasi konsep.' },
+      { id: 'charcoal',        cat: 'Lakaran & Lukisan',   emoji: '🖤',
+        label: 'Charcoal / Arang',
+        promptKw: 'charcoal drawing, dark dramatic shading, smudged textures, expressive strokes',
+        desc: 'Lukisan arang — kontras tinggi, sapuan dramatik, mood serius. Sesuai untuk: potret berkarakter.' },
+      { id: 'ink-drawing',     cat: 'Lakaran & Lukisan',   emoji: '🖋️',
+        label: 'Ink Drawing / Lukisan Dakwat',
+        promptKw: 'ink drawing, pen and ink illustration, fine line work, detailed cross-hatching, monochrome',
+        desc: 'Lukisan dakwat pen — garisan halus, cross-hatching butiran, gaya editorial newspaper.' },
+
+      // === Animasi & Kartun ===
+      { id: 'anime',           cat: 'Animasi & Kartun',    emoji: '🌸',
+        label: 'Anime / Manga',
+        promptKw: 'anime illustration style, cel-shaded, Japanese animation aesthetic, expressive eyes, clean line art',
+        desc: 'Anime gaya Jepun moden — cel-shading, mata ekspresif, line art bersih. Studio: Bones, MAPPA, A-1 Pictures.' },
+      { id: 'studio-ghibli',   cat: 'Animasi & Kartun',    emoji: '🍃',
+        label: 'Studio Ghibli',
+        promptKw: 'Studio Ghibli style, Miyazaki inspired, soft watercolor backgrounds, whimsical hand-painted, dreamy nostalgia',
+        desc: 'Stail Studio Ghibli (Hayao Miyazaki) — latar cat air lembut, watak whimsical, suasana nostalgia. Sesuai untuk: cerita kanak-kanak magical.' },
+      { id: 'pixar-disney',    cat: 'Animasi & Kartun',    emoji: '✨',
+        label: 'Disney / Pixar',
+        promptKw: 'Pixar 3D animation style, Disney character design, expressive cartoon features, polished CGI render',
+        desc: 'Gaya 3D Pixar/Disney — watak ekspresif, render CGI moden, warna cerah keluarga-friendly.' },
+      { id: 'cartoon-classic', cat: 'Animasi & Kartun',    emoji: '😄',
+        label: 'Cartoon Klasik (Hanna-Barbera)',
+        promptKw: 'classic Hanna-Barbera cartoon style, bold outlines, flat vibrant colors, retro Saturday morning aesthetic',
+        desc: 'Kartun klasik 60s/70s (Flintstones, Scooby-Doo) — outline tebal, warna flat vibrant, gaya retro.' },
+      { id: 'comic-book',      cat: 'Animasi & Kartun',    emoji: '💥',
+        label: 'Comic Book (Marvel/DC)',
+        promptKw: 'comic book illustration, bold ink outlines, halftone shading, dynamic action poses, Marvel DC style',
+        desc: 'Gaya komik Amerika moden (Marvel/DC) — outline tebal, halftone shading, pose dinamik. Sesuai untuk: poster aksi, infografik bertenaga.' },
+
+      // === Aliran Seni ===
+      { id: 'pop-art',         cat: 'Aliran Seni',         emoji: '🎯',
+        label: 'Pop Art (Andy Warhol)',
+        promptKw: 'pop art style, Andy Warhol inspired, bold flat colors, screen print aesthetic, dotted halftone',
+        desc: 'Gaya Pop Art 60s (Andy Warhol, Roy Lichtenstein) — warna flat bold, halftone dots, repetisi corak.' },
+      { id: 'impressionism',   cat: 'Aliran Seni',         emoji: '🌻',
+        label: 'Impressionism (Monet/Van Gogh)',
+        promptKw: 'impressionist painting, Monet Van Gogh style, visible brush strokes, atmospheric light, plein air',
+        desc: 'Aliran Impressionism abad 19 (Monet, Van Gogh) — sapuan berus ketara, fokus cahaya & atmosfera, bukan butiran tajam.' },
+      { id: 'surrealism',      cat: 'Aliran Seni',         emoji: '🌀',
+        label: 'Surrealism (Salvador Dali)',
+        promptKw: 'surrealist artwork, Salvador Dali inspired, dreamlike impossible imagery, distorted reality',
+        desc: 'Aliran Surrealism (Dali, Magritte) — imej tak masuk akal seperti mimpi, realiti diputar-belitkan.' },
+      { id: 'renaissance',     cat: 'Aliran Seni',         emoji: '⚜️',
+        label: 'Renaissance (Da Vinci)',
+        promptKw: 'Renaissance painting style, Leonardo da Vinci inspired, sfumato technique, classical composition, religious art',
+        desc: 'Lukisan Renaissance (Da Vinci, Michelangelo) — teknik sfumato, komposisi klasik, watak heroik anatomical.' },
+      { id: 'art-deco',        cat: 'Aliran Seni',         emoji: '💎',
+        label: 'Art Deco',
+        promptKw: 'Art Deco style, geometric gold patterns, 1920s glamour, symmetrical design, luxury aesthetic',
+        desc: 'Gaya Art Deco 1920s — corak geometri emas, simetri, glamour zaman jazz. Sesuai untuk: poster majlis formal.' },
+      { id: 'art-nouveau',     cat: 'Aliran Seni',         emoji: '🌿',
+        label: 'Art Nouveau (Mucha)',
+        promptKw: 'Art Nouveau style, Alphonse Mucha inspired, flowing organic lines, decorative borders, floral patterns',
+        desc: 'Gaya Art Nouveau (Alphonse Mucha) — garisan organik melengkung, corak bunga dekoratif, sempadan ornate.' },
+
+      // === Digital & Moden ===
+      { id: 'minimalist-flat', cat: 'Digital & Moden',     emoji: '⬜',
+        label: 'Minimalist / Flat Design',
+        promptKw: 'minimalist flat design, clean geometric shapes, limited color palette, modern corporate style',
+        desc: 'Reka bentuk flat moden — bentuk geometri bersih, palet warna terhad, gaya korporat. Sesuai untuk: infografik, slide.' },
+      { id: 'vector-illust',   cat: 'Digital & Moden',     emoji: '📐',
+        label: 'Vector Illustration',
+        promptKw: 'vector illustration, clean lines, scalable graphics, modern editorial style, professional design',
+        desc: 'Ilustrasi vektor moden — garisan bersih, boleh skala, gaya editorial. Sesuai untuk: poster, ikon, infografik.' },
+      { id: 'pixel-art',       cat: 'Digital & Moden',     emoji: '🕹️',
+        label: 'Pixel Art / 8-bit',
+        promptKw: 'pixel art, 8-bit retro game style, blocky pixels, limited color palette, video game aesthetic',
+        desc: 'Pixel art retro game 8-bit (era NES/SNES) — pixel blok, palet warna terhad, nostalgia gaming.' },
+      { id: 'low-poly',        cat: 'Digital & Moden',     emoji: '🔷',
+        label: 'Low Poly',
+        promptKw: 'low poly 3D illustration, geometric triangular faceted style, minimalist 3D, faceted shading',
+        desc: '3D low-poly — bentuk segitiga faceted, geometri minimal, gaya moden gamic. Trending dalam UI design.' },
+      { id: 'isometric',       cat: 'Digital & Moden',     emoji: '📦',
+        label: 'Isometric',
+        promptKw: 'isometric illustration, 30-degree angled perspective, technical drawing style, clean geometric',
+        desc: 'Perspektif isometric (sudut 30°) — gaya teknikal, sesuai untuk: diagram bilik, infografik 3D, dashboard ilustrasi.' },
+
+      // === Genre Fantasi ===
+      { id: 'cyberpunk',       cat: 'Genre Fantasi',       emoji: '🌃',
+        label: 'Cyberpunk',
+        promptKw: 'cyberpunk aesthetic, neon glow, rainy futuristic city, Blade Runner inspired, dystopian sci-fi',
+        desc: 'Cyberpunk gaya Blade Runner — bandar dystopian masa depan, neon glow, hujan, mood gelap futuristik.' },
+      { id: 'steampunk',       cat: 'Genre Fantasi',       emoji: '⚙️',
+        label: 'Steampunk',
+        promptKw: 'steampunk style, Victorian era technology, brass gears and pipes, retro-futuristic, alternate history',
+        desc: 'Steampunk — teknologi era Victorian dengan gear gangsa, paip & wap. Sci-fi alternatif zaman Industrial Revolution.' },
+      { id: 'vaporwave',       cat: 'Genre Fantasi',       emoji: '🌅',
+        label: 'Vaporwave / Synthwave',
+        promptKw: 'vaporwave aesthetic, retro 80s synthwave, neon pink and purple, sunset grid, retro-futuristic',
+        desc: 'Vaporwave / Synthwave 80s — neon pink/purple, grid sunset, mood retro-futuristic aesthetic.' },
+
+      // === Budaya Asia ===
+      { id: 'ukiyo-e',         cat: 'Budaya Asia',         emoji: '🗾',
+        label: 'Ukiyo-e (Jepun Klasik)',
+        promptKw: 'Ukiyo-e Japanese woodblock print, Hokusai Hiroshige style, traditional Japanese art, flat colors',
+        desc: 'Ukiyo-e woodblock print Jepun klasik (Hokusai - "The Great Wave"). Warna flat, garisan tebal, motif tradisional.' },
+      { id: 'chinese-ink',     cat: 'Budaya Asia',         emoji: '🐉',
+        label: 'Chinese Ink Painting (Tinta Cina)',
+        promptKw: 'Chinese ink painting, sumi-e brush strokes, minimalist composition, traditional East Asian art',
+        desc: 'Lukisan tinta Cina/Jepun klasik (sumi-e) — sapuan berus minimalis, ruang putih sengaja, mood meditasi.' },
+      { id: 'batik-melayu',    cat: 'Budaya Asia',         emoji: '🌺',
+        label: 'Batik Motif Melayu',
+        promptKw: 'Malaysian batik pattern, traditional Malay motifs, hibiscus flowers, ornate decorative borders, vibrant local colors',
+        desc: 'Motif batik tradisional Malaysia — bunga raya, ukiran tradisional, warna vibrant tempatan. Sesuai untuk: kad raya, poster budaya.' },
+
+      // === Custom (Lain-lain) ===
+      { id: 'custom',          cat: 'Lain-lain',           emoji: '✏️',
+        label: '✏️ Lain-lain (tulis sendiri)',
+        promptKw: '',  // user provides
+        desc: 'Pilih ini untuk menulis rujukan gaya artistik anda sendiri. Cth: "seperti karya Kandinsky", "macam wayang kulit", "gaya Pak Tam pelukis sketsa Kedah".' }
+    ];
+
+    function initArtStyleRefDropdown() {
+      const sel = $('imgStyleRefSelect');
+      if (!sel) return;
+
+      // Group by category
+      const grouped = {};
+      ART_STYLE_REFERENCES.forEach(s => {
+        if (!grouped[s.cat]) grouped[s.cat] = [];
+        grouped[s.cat].push(s);
+      });
+
+      // Build options dengan optgroup
+      let html = '<option value="">— Tiada (auto) —</option>';
+      Object.keys(grouped).forEach(cat => {
+        html += `<optgroup label="${cat}">`;
+        grouped[cat].forEach(s => {
+          html += `<option value="${s.id}" data-kw="${s.promptKw.replace(/"/g, '&quot;')}">${s.emoji} ${s.label}</option>`;
+        });
+        html += `</optgroup>`;
+      });
+      sel.innerHTML = html;
+
+      // Change handler — show/hide custom text input
+      sel.addEventListener('change', () => {
+        const customInput = $('imgStyleRef');
+        if (sel.value === 'custom') {
+          customInput.style.display = '';
+          customInput.focus();
+        } else {
+          customInput.style.display = 'none';
+          // Update hidden imgStyleRef value dengan promptKw dari selected style
+          const selected = ART_STYLE_REFERENCES.find(s => s.id === sel.value);
+          customInput.value = selected ? selected.promptKw : '';
+        }
+        scheduleDraftSave();
+      });
+    }
+
+    function initArtStyleInfoModal() {
+      const modal = $('artStyleInfoModal');
+      const grid = $('artStyleInfoGrid');
+      const closeBtn = $('artStyleInfoCloseBtn');
+      const infoBtn = $('imgStyleRefInfoBtn');
+      if (!modal || !grid || !infoBtn) return;
+
+      // Build content grouped by category
+      const grouped = {};
+      ART_STYLE_REFERENCES.forEach(s => {
+        if (s.id === 'custom') return; // Skip custom in gallery
+        if (!grouped[s.cat]) grouped[s.cat] = [];
+        grouped[s.cat].push(s);
+      });
+
+      let html = '';
+      Object.keys(grouped).forEach(cat => {
+        html += `<div>
+          <h4 class="text-sm font-bold mb-2 pb-2 border-b" style="color: var(--md-primary); letter-spacing: 0.05em; text-transform: uppercase; border-color: var(--md-outline);">${cat}</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">`;
+        grouped[cat].forEach(s => {
+          html += `
+            <button type="button" data-style-id="${s.id}"
+                    class="art-style-card text-left p-3 rounded-xl border transition-all"
+                    style="background: var(--md-surface-variant); border-color: var(--md-outline); cursor: pointer;">
+              <div class="flex items-start gap-2">
+                <span style="font-size: 1.5rem; flex-shrink: 0;">${s.emoji}</span>
+                <div style="flex: 1; min-width: 0;">
+                  <div class="font-semibold text-sm mb-1" style="color: var(--md-on-surface);">${s.label}</div>
+                  <p class="text-xs leading-relaxed" style="color: var(--md-on-surface-muted);">${s.desc}</p>
+                </div>
+              </div>
+            </button>`;
+        });
+        html += `</div></div>`;
+      });
+      grid.innerHTML = html;
+
+      // Open modal
+      infoBtn.addEventListener('click', () => {
+        modal.classList.add('open');
+      });
+
+      // Close modal
+      const closeModal = () => modal.classList.remove('open');
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => {
+        if (e.target.id === 'artStyleInfoModal') closeModal();
+      });
+
+      // Click card = select style + close
+      grid.addEventListener('click', (e) => {
+        const card = e.target.closest('button[data-style-id]');
+        if (!card) return;
+        const styleId = card.dataset.styleId;
+        const sel = $('imgStyleRefSelect');
+        if (sel) {
+          sel.value = styleId;
+          sel.dispatchEvent(new Event('change'));
+        }
+        const style = ART_STYLE_REFERENCES.find(s => s.id === styleId);
+        showToast(`✓ Gaya "${style.label}" dipilih`);
+        closeModal();
+      });
+
+      // Hover effect
+      grid.addEventListener('mouseover', (e) => {
+        const card = e.target.closest('.art-style-card');
+        if (card) {
+          card.style.borderColor = 'var(--md-primary)';
+          card.style.transform = 'translateY(-1px)';
+          card.style.boxShadow = '0 4px 12px rgba(5,150,105,0.12)';
+        }
+      });
+      grid.addEventListener('mouseout', (e) => {
+        const card = e.target.closest('.art-style-card');
+        if (card) {
+          card.style.borderColor = 'var(--md-outline)';
+          card.style.transform = '';
+          card.style.boxShadow = '';
+        }
+      });
+    }
+
+    // ============ v3.8 PATCH: TEXT MODE AI LAUNCHERS (v3.8) ============
+    // Senarai AI untuk text mode (Gemini/NotebookLM) — different dari image AI targets
+    const TEXT_AI_LAUNCHERS = {
+      gemini: {
+        emoji: '🪄',
+        label: 'Google Gemini',
+        badge: 'PERCUMA',
+        url: 'https://gemini.google.com',
+        steps: [
+          'Buka gemini.google.com (log masuk Google Account)',
+          'Klik butang Salin di atas (📋) untuk salin prompt',
+          'Tampal prompt ke kotak chat Gemini',
+          'Gemini akan ikut struktur XML untuk hasil terbaik'
+        ]
+      },
+      notebooklm: {
+        emoji: '🎙️',
+        label: 'NotebookLM',
+        badge: 'PERCUMA',
+        url: 'https://notebooklm.google.com',
+        steps: [
+          'Buka notebooklm.google.com (log masuk Google Account)',
+          'Upload sumber rujukan (PDF, DOCX, link, dll.) ke notebook',
+          'Pilih jenis output di Studio panel (Slide Deck/Audio Overview/Video/Mind Map)',
+          'Tampal prompt ke kotak Customize atau chat — ikut mod yang dipilih'
+        ]
+      }
+    };
+
     // ============ AI IMAGE TARGETS (v3.8) ============
     // Setiap AI ada prompt syntax tersendiri. buildImagePrompt() & buildKadUcapanPrompt()
     // branch ikut state.aiTarget. Lihat bahagian builders untuk implementation.
@@ -3213,6 +4517,7 @@ D) 4 botol, 7/18 liter tinggal
         history: 'Sejarah',
         myTemplates: 'Template Saya:',
         configTitle: 'Konfigurasi Arahan',
+        modeImejLabel: 'IMEJ', // v3.8 patch: Mode toggle label (BM)
         randomEx: 'Contoh',
         lblBidang: 'Kategori Bidang',
         selectBidang: 'Pilih Bidang',
@@ -3272,13 +4577,13 @@ D) 4 botol, 7/18 liter tinggal
         refineHint2: 'Pilih cara AI patut tambah baik output anda',
         vibeLabel: 'Vibe Control',
         vibeHelper: 'Estetika Slide Deck',
-        btnGenerate: 'JANA ARAHAN SISTEM',
+        btnGenerate: 'JANA PROMPT',
         btnSaveTemplate: 'Simpan Template',
         kbdHelper: 'Tekan <kbd>Ctrl</kbd> + <kbd>Enter</kbd> untuk jana arahan pantas',
-        outputTitle: 'Arahan Terhasil',
+        outputTitle: 'Hasil Prompt',
         outputSubtitle: 'Struktur XML · Prompt Engineering',
         btnCopy: 'Salin',
-        outputPlaceholder: "Klik 'JANA ARAHAN SISTEM' untuk menghasilkan prompt terstruktur di sini...\n\nOutput akan disusun dalam format XML standard industri untuk keputusan AI yang paling tepat.",
+        outputPlaceholder: "Klik 'JANA PROMPT' untuk menghasilkan prompt terstruktur di sini...\n\nOutput akan disusun dalam format XML standard industri untuk keputusan AI yang paling tepat.",
         stMode: 'Mode', stPersona: 'Persona',
         words: 'Perkataan', chars: 'Aksara',
         tipText: '<strong>Tips:</strong> Tampal arahan ini ke dalam Gemini atau NotebookLM. Semakin lengkap input anda, semakin berkualiti output AI.',
@@ -3318,6 +4623,7 @@ D) 4 botol, 7/18 liter tinggal
         history: 'History',
         myTemplates: 'My Templates:',
         configTitle: 'Prompt Configuration',
+        modeImejLabel: 'IMAGE', // v3.8 patch: Mode toggle label (EN)
         randomEx: 'Example',
         lblBidang: 'Field Category',
         selectBidang: 'Select Field',
@@ -3377,13 +4683,13 @@ D) 4 botol, 7/18 liter tinggal
         refineHint2: 'Choose how AI should improve your output',
         vibeLabel: 'Vibe Control',
         vibeHelper: 'Slide Deck Aesthetic',
-        btnGenerate: 'GENERATE SYSTEM PROMPT',
+        btnGenerate: 'GENERATE PROMPT',
         btnSaveTemplate: 'Save Template',
         kbdHelper: 'Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> for quick generation',
         outputTitle: 'Generated Prompt',
         outputSubtitle: 'XML Structure · Prompt Engineering',
         btnCopy: 'Copy',
-        outputPlaceholder: "Click 'GENERATE SYSTEM PROMPT' to produce a structured prompt here...\n\nOutput will be formatted in industry-standard XML for the most accurate AI results.",
+        outputPlaceholder: "Click 'GENERATE PROMPT' to produce a structured prompt here...\n\nOutput will be formatted in industry-standard XML for the most accurate AI results.",
         stMode: 'Mode', stPersona: 'Persona',
         words: 'Words', chars: 'Chars',
         tipText: '<strong>Tip:</strong> Paste this prompt into Gemini or NotebookLM. The more detailed your input, the better the AI output.',
@@ -3425,7 +4731,8 @@ D) 4 botol, 7/18 liter tinggal
       bahasa: 'BM',
       lang: 'ms',
       theme: 'light',
-      compactMode: false
+      compactMode: false,
+      outputCopied: true // v3.8 A3: Track if user dah copy output (untuk beforeunload warning)
     };
 
     // ============ DOM HELPERS ============
@@ -3563,6 +4870,13 @@ D) 4 botol, 7/18 liter tinggal
       });
       state.imgQuality = 'High Quality';
 
+      // ============ v3.8 Phase 1 A5: Inspirasi cepat-pilih cards ============
+      initInspirasiPanel();
+
+      // ============ v3.8 Patch: Art Style Reference Dropdown + Info Modal ============
+      initArtStyleRefDropdown();
+      initArtStyleInfoModal();
+
       // ============ v3.8: AI Target Dropdown ============
       const aiTargetEl = $('aiTarget');
       aiTargetEl.innerHTML = AI_TARGETS.map(ai =>
@@ -3669,6 +4983,11 @@ D) 4 botol, 7/18 liter tinggal
           $('kadBahasaPesanan').querySelectorAll('button').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           state.kadBahasaPesanan = btn.dataset.bahasaPesanan;
+          // v3.8 Phase 3 D1: Show/hide Jawi notice
+          const jawiNotice = $('jawiNotice');
+          if (jawiNotice) {
+            jawiNotice.style.display = (state.kadBahasaPesanan === 'jawi' || state.kadBahasaPesanan === 'dual') ? '' : 'none';
+          }
         });
       });
       state.kadBahasaPesanan = 'ms';
@@ -3682,6 +5001,64 @@ D) 4 botol, 7/18 liter tinggal
     }
 
     // ============ v3.8: AI Target Hint Updater ============
+    // ============ v3.8 Phase 1 A5: Inspirasi Panel Init ============
+    // Render 4 cards. Click = auto-fill imgSubject + switch ke Imej Umum sub-tab + smooth focus.
+    function initInspirasiPanel() {
+      const grid = $('inspirasiGrid');
+      if (!grid) return;
+      grid.innerHTML = INSPIRATION_CARDS.map(card => `
+        <button type="button" data-card-id="${card.id}"
+                class="inspirasi-card rounded-xl p-3 text-left transition-all"
+                style="background: ${card.gradient}; color: white; border: none; cursor: pointer; min-height: 88px;
+                       box-shadow: 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.15);">
+          <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">${card.emoji}</div>
+          <div style="font-size: 0.78rem; font-weight: 700; line-height: 1.2; letter-spacing: 0.01em;">${card.label}</div>
+        </button>
+      `).join('');
+
+      // Click handler: auto-fill + switch sub-tab kalau dalam Kad Ucapan + focus
+      grid.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cardId = btn.dataset.cardId;
+          const card = INSPIRATION_CARDS.find(c => c.id === cardId);
+          if (!card) return;
+
+          // Switch ke Imej Umum kalau pengguna di Kad Ucapan
+          if (state.subImej !== 'umum') {
+            $('subImejUmum').click();
+          }
+
+          // Auto-fill subject
+          const subjEl = $('imgSubject');
+          if (subjEl) {
+            subjEl.value = card.subject;
+            // Trigger draft autosave
+            scheduleDraftSave();
+            // Smooth focus + flash
+            subjEl.focus();
+            subjEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Brief flash animation pada textarea
+            subjEl.style.transition = 'box-shadow 280ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            subjEl.style.boxShadow = '0 0 0 3px var(--md-focus-ring), 0 0 0 1.5px var(--md-primary)';
+            setTimeout(() => { subjEl.style.boxShadow = ''; }, 1200);
+          }
+
+          showToast(`💡 ${card.emoji} Inspirasi "${card.label}" dimuatkan`);
+          track('InspirasiClick', { card: cardId });
+        });
+
+        // Hover effect via JS (sebab inline style mengatasi CSS class)
+        btn.addEventListener('mouseenter', () => {
+          btn.style.transform = 'translateY(-2px) scale(1.02)';
+          btn.style.boxShadow = '0 8px 20px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.2)';
+        });
+        btn.addEventListener('mouseleave', () => {
+          btn.style.transform = '';
+          btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.15)';
+        });
+      });
+    }
+
     function updateAiTargetHint() {
       const ai = AI_TARGETS.find(a => a.id === state.aiTarget) || AI_TARGETS[0];
       $('aiTargetHint').innerHTML = `<strong>${ai.emoji} ${ai.label}</strong>: ${ai.hint}`;
@@ -3719,6 +5096,10 @@ D) 4 botol, 7/18 liter tinggal
       if (linkEl) linkEl.href = ai.url;
       if (linkLabelEl) linkLabelEl.textContent = `Buka ${ai.label} →`;
 
+      // v3.8 A4: Update smart CTA label
+      const smartCtaAi = $('caraGunaSmartCtaAi');
+      if (smartCtaAi) smartCtaAi.textContent = ai.label;
+
       // Tip Pro untuk Kad Ucapan sub-tab (esp. Midjourney text limitation)
       if (tipProEl) {
         if (state.subImej === 'kad') {
@@ -3733,6 +5114,44 @@ D) 4 botol, 7/18 liter tinggal
           tipProEl.style.display = 'none';
         }
       }
+    }
+
+    // ============ v3.8: AI Launcher Panel updater (for Gemini/NotebookLM text mode) ============
+    function updateAiLauncherPanel() {
+      const panel = $('aiLauncherPanel');
+      if (!panel) return;
+
+      // Only show untuk text modes (gemini, notebooklm)
+      const launcher = TEXT_AI_LAUNCHERS[state.mode];
+      if (!launcher) {
+        panel.style.display = 'none';
+        return;
+      }
+      panel.style.display = '';
+
+      const badgeEl = $('aiLauncherBadge');
+      const stepsEl = $('aiLauncherSteps');
+      const linkEl = $('aiLauncherLink');
+      const linkLabelEl = $('aiLauncherLinkLabel');
+      const titleEl = $('aiLauncherTitle');
+
+      if (titleEl) titleEl.textContent = `Lancarkan ${launcher.label}`;
+      if (badgeEl) badgeEl.innerHTML = `${launcher.emoji} ${launcher.badge}`;
+      if (stepsEl) {
+        stepsEl.innerHTML = launcher.steps.map((s, i) =>
+          `<div class="flex gap-2.5 items-start">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
+                  style="background: var(--md-primary); color: white;">${i + 1}</span>
+            <span class="flex-1 leading-relaxed">${s}</span>
+          </div>`
+        ).join('');
+      }
+      if (linkEl) linkEl.href = launcher.url;
+      if (linkLabelEl) linkLabelEl.textContent = `Buka ${launcher.label} →`;
+
+      // v3.8 A4: Update smart CTA label
+      const smartCtaAi = $('aiLauncherSmartCtaAi');
+      if (smartCtaAi) smartCtaAi.textContent = launcher.label;
     }
 
     // ============ v3.8: Perayaan Info Card updater ============
@@ -4138,6 +5557,13 @@ D) 4 botol, 7/18 liter tinggal
       const caraGunaPanel = $('caraGunaPanel');
       if (caraGunaPanel) caraGunaPanel.style.display = isImej ? '' : 'none';
 
+      // v3.8 patch: Show Safety Banner hanya dalam imej mode (pindah ke bawah JANA PROMPT)
+      const safetyBanner = $('imejSafetyBannerWrap');
+      if (safetyBanner) safetyBanner.style.display = isImej ? '' : 'none';
+
+      // v3.8 polish: Update AI Launcher Panel (Gemini/NotebookLM text mode)
+      updateAiLauncherPanel();
+
       // Update section title
       $('configTitle').textContent = isImej ? 'Konfigurasi Imej' : (I18N[state.lang].configTitle);
 
@@ -4207,6 +5633,9 @@ D) 4 botol, 7/18 liter tinggal
         if (persEl) persEl.style.display = '';
         if (cotEl) cotEl.style.display = $('cot').checked ? '' : 'none';
       }
+
+      // v3.8 C2: Smart tip ikut mode
+      setSmartTip('mode-' + mode);
     }
 
     function updateVibeVisibility() {
@@ -4739,6 +6168,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         }
         const prompt = buildImagePrompt();
         $('output').value = prompt;
+        state.outputCopied = false; // v3.8 A3: Reset flag bila content baru
         updateCounter();
         saveToHistory(prompt);
         track('Generate', { mode: 'imej', style: state.imgStyle });
@@ -4746,6 +6176,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
           $('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         showToast('🎨 Prompt imej dijana!');
+        setSmartTip('after-generate'); // v3.8 C2
         return;
       }
 
@@ -4766,6 +6197,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
 
       const prompt = buildPrompt();
       $('output').value = prompt;
+      state.outputCopied = false; // v3.8 A3: Reset flag bila content baru
       updateCounter();
 
       // Update tahap status badge
@@ -4793,6 +6225,10 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         $('output').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
       showToast(`✨ ${t('generated')}!`);
+
+      // v3.8 C2: Smart tip — after-refine kalau refine mode, else after-generate
+      const isRefineMode = getObjektif() === '♻️ Refine / Naik Taraf Output Sedia Ada';
+      setSmartTip(isRefineMode ? 'after-refine' : 'after-generate');
     }
     // v3.8 Polish: XML syntax highlighter untuk output area.
     // Tokenize berdasarkan pattern PintarAI output (XML tags, sections, markers, dividers).
@@ -4832,10 +6268,38 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     function syncHighlight() {
       const txt = $('output').value;
       const highlightEl = $('outputHighlight');
+      const linesEl = $('outputLineNumbers'); // v3.8 C3
+
+      // v3.8 Phase 3 D1: Apply RTL mode kalau perlu (sebelum render)
+      applyRtlIfNeeded(txt);
+
       if (highlightEl) {
-        highlightEl.innerHTML = highlightOutput(txt);
+        if (txt.trim().length === 0) {
+          // v3.8 patch: Empty state — biarkan kosong supaya placeholder textarea muncul jelas
+          // (Buang demo preview kerana bertindih dengan placeholder, kelihatan rosak)
+          highlightEl.innerHTML = '';
+          if (linesEl) linesEl.style.opacity = '0'; // hide gutter dalam empty state
+        } else {
+          // Real content — full opacity
+          highlightEl.innerHTML = highlightOutput(txt);
+          highlightEl.style.opacity = '1';
+          if (linesEl) linesEl.style.opacity = '0.5';
+        }
         // Sync scroll position
         highlightEl.scrollTop = $('output').scrollTop;
+      }
+
+      // v3.8 Phase 3 C3: Update line numbers (hanya kalau ada content)
+      if (linesEl) {
+        if (txt.trim().length === 0) {
+          linesEl.textContent = '';
+        } else {
+          const lineCount = txt.split('\n').length;
+          let nums = '';
+          for (let i = 1; i <= lineCount; i++) nums += i + '\n';
+          linesEl.textContent = nums;
+          linesEl.scrollTop = $('output').scrollTop;
+        }
       }
     }
 
@@ -4851,6 +6315,30 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
 
       // v3.8 Polish: Sync syntax highlighting setiap kali output update
       syncHighlight();
+
+      // v3.8 Phase 3 C4: Update target indicator (optimal length per AI)
+      updateTargetIndicator(chars, tokens);
+
+      // v3.8 Phase 2 B1: Show/hide FAB Regenerate based on output content
+      const fab = $('fabRegenerate');
+      if (fab) {
+        if (chars > 0) {
+          if (fab.style.display === 'none') {
+            fab.style.display = '';
+            fab.classList.add('entering');
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              fab.classList.remove('entering');
+              fab.classList.add('visible');
+            }));
+          }
+        } else {
+          fab.classList.remove('visible');
+          fab.classList.add('entering');
+          setTimeout(() => {
+            if ($('output').value.length === 0) fab.style.display = 'none';
+          }, 320);
+        }
+      }
 
       // Context warning — adapts to mode
       const badge = $('contextBadge');
@@ -4914,6 +6402,9 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
         $('copyLabel').textContent = t('btnCopy');
       }, 2000);
       showToast('📋 ' + t('copied'));
+      // v3.8 Phase 1 — A3: Mark output sudah di-copy (untuk beforeunload check)
+      state.outputCopied = true;
+      setSmartTip('after-copy'); // v3.8 C2
     }
 
     // ============ DOWNLOAD ============
@@ -5034,6 +6525,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
 
       setMode('gemini');
       showToast('🔄 ' + t('resetDone'));
+      clearDraft(); // v3.8 A2: Clear stale draft selepas reset
     }
 
     // ============ TEMPLATES (localStorage) ============
@@ -5041,6 +6533,100 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     const LS_HISTORY = 'pintarai_history_v2';
     const LS_THEME = 'pintarai_theme';
     const LS_LANG = 'pintarai_lang';
+    const LS_DRAFT = 'pintarai_draft_v1'; // v3.8 Phase 1 A2: Auto-save draft
+
+    // v3.8 Phase 1 — A2: Auto-save draft system
+    // Debounced save (3s after last change). Restore prompt shown bila draft >5 min old.
+    const DRAFT_DEBOUNCE_MS = 3000;
+    const DRAFT_STALE_MS = 5 * 60 * 1000; // 5 minutes — show restore prompt only kalau older
+    let draftSaveTimer = null;
+
+    function saveDraft() {
+      try {
+        const draft = captureState();
+        draft._savedAt = Date.now();
+        localStorage.setItem(LS_DRAFT, JSON.stringify(draft));
+      } catch (e) {
+        console.warn('[PintarAI] Draft save failed:', e);
+      }
+    }
+
+    function scheduleDraftSave() {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = setTimeout(saveDraft, DRAFT_DEBOUNCE_MS);
+    }
+
+    function getDraft() {
+      try {
+        const raw = localStorage.getItem(LS_DRAFT);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    }
+
+    function clearDraft() {
+      localStorage.removeItem(LS_DRAFT);
+    }
+
+    function hasSignificantDraft(d) {
+      if (!d) return false;
+      // Significant = ada topik atau imgSubject yang user dah taip (bukan blank state)
+      return (d.topik && d.topik.trim().length > 5) ||
+             (d.imgSubject && d.imgSubject.trim().length > 5);
+    }
+
+    // v3.8 Phase 1 — A2: Interactive prompt untuk restore draft (custom toast dengan buttons)
+    function offerRestoreDraft(draft, ageHuman) {
+      const stack = $('toastStack');
+      if (!stack) return;
+
+      // Custom interactive toast
+      const prompt = document.createElement('div');
+      prompt.className = 'toast';
+      prompt.style.whiteSpace = 'normal';
+      prompt.style.maxWidth = '420px';
+      prompt.style.padding = '1rem 1.25rem';
+      prompt.innerHTML = `
+        <div style="display:flex; align-items:flex-start; gap:0.75rem;">
+          <span style="font-size:1.5rem; flex-shrink:0;">💾</span>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:600; margin-bottom:0.25rem;">Draf tersimpan dijumpai</div>
+            <div style="font-size:0.8rem; opacity:0.85; line-height:1.4; margin-bottom:0.75rem;">
+              Anda ada draf yang belum siap dari ${ageHuman}.<br>
+              <strong>${(draft.topik || draft.imgSubject || '').substring(0, 60)}${(draft.topik || draft.imgSubject || '').length > 60 ? '…' : ''}</strong>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button id="restoreDraftYes" style="padding:0.4rem 0.85rem; border-radius:999px; background:var(--md-primary); color:white; font-weight:600; font-size:0.8rem; border:none; cursor:pointer;">↻ Pulihkan</button>
+              <button id="restoreDraftNo" style="padding:0.4rem 0.85rem; border-radius:999px; background:transparent; color:inherit; border:1.5px solid rgba(255,255,255,0.3); font-weight:600; font-size:0.8rem; cursor:pointer;">Buang</button>
+            </div>
+          </div>
+        </div>
+      `;
+      stack.appendChild(prompt);
+      requestAnimationFrame(() => requestAnimationFrame(() => prompt.classList.add('show')));
+
+      const cleanup = () => {
+        prompt.classList.remove('show');
+        setTimeout(() => prompt.remove(), 520);
+      };
+
+      prompt.querySelector('#restoreDraftYes').addEventListener('click', () => {
+        applyState(draft);
+        showToast('✅ Draf dipulihkan');
+        cleanup();
+        track('DraftRestore', { action: 'yes' });
+      });
+      prompt.querySelector('#restoreDraftNo').addEventListener('click', () => {
+        clearDraft();
+        showToast('🗑️ Draf dibuang');
+        cleanup();
+        track('DraftRestore', { action: 'no' });
+      });
+
+      // Auto-dismiss after 20s (no action = treat as "leave for later")
+      setTimeout(() => {
+        if (document.body.contains(prompt)) cleanup();
+      }, 20000);
+    }
 
     function getTemplates() {
       try { return JSON.parse(localStorage.getItem(LS_TEMPLATES) || '[]'); } catch { return []; }
@@ -5352,21 +6938,82 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       localStorage.setItem(LS_HISTORY, JSON.stringify(hist.slice(0, 5)));
       renderHistory();
     }
+    // v3.8 Phase 3 C5: History filter state
+    let historyFilter = 'all'; // all | gemini | notebooklm | imej
+    let historySearchQuery = '';
+
     function renderHistory() {
-      const hist = getHistory();
+      const allHist = getHistory();
       const el = $('historyList');
-      if (!hist.length) {
+      const countEl = $('historyResultCount');
+
+      // Apply filter
+      let filtered = allHist;
+      if (historyFilter !== 'all') {
+        // Match mode key — handle case variations
+        const modeMap = { gemini: 'Gemini', notebooklm: 'NotebookLM', imej: 'Imej Gemini' };
+        const matchLabel = modeMap[historyFilter];
+        filtered = filtered.filter(h => {
+          const mode = (h.mode || '').toLowerCase();
+          return mode.includes(historyFilter) ||
+                 (matchLabel && (h.mode || '').includes(matchLabel)) ||
+                 (historyFilter === 'imej' && mode.includes('imej'));
+        });
+      }
+
+      // Apply search
+      if (historySearchQuery) {
+        const q = historySearchQuery.toLowerCase();
+        filtered = filtered.filter(h => {
+          return (h.topik || '').toLowerCase().includes(q) ||
+                 (h.prompt || '').toLowerCase().includes(q);
+        });
+      }
+
+      // Update result count
+      if (countEl) {
+        if (allHist.length === 0) {
+          countEl.textContent = '';
+        } else if (filtered.length === allHist.length) {
+          countEl.textContent = `${allHist.length} arahan tersimpan`;
+        } else {
+          countEl.textContent = `${filtered.length} daripada ${allHist.length} arahan ditemui`;
+        }
+      }
+
+      // Render
+      if (!allHist.length) {
         el.innerHTML = `<p class="text-sm text-center py-8" style="color: var(--md-on-surface-muted);">${t('historyEmpty')}</p>`;
         return;
       }
-      el.innerHTML = hist.map((h, i) => `
-        <div class="rounded-2xl p-3 border cursor-pointer hover:border-emerald-500 transition" style="border-color: var(--md-outline); background: var(--md-surface-variant);" data-hist="${i}">
+      if (!filtered.length) {
+        el.innerHTML = `
+          <div class="text-sm text-center py-8 space-y-2" style="color: var(--md-on-surface-muted);">
+            <div style="font-size:2rem;">🔍</div>
+            <div>Tiada arahan yang sepadan dengan tapisan/carian.</div>
+            <button id="clearHistFilter" type="button" class="md3-btn-outlined rounded-full px-3 py-1 text-xs mt-2">Reset Tapisan</button>
+          </div>`;
+        const clearBtn = $('clearHistFilter');
+        if (clearBtn) clearBtn.addEventListener('click', () => {
+          historyFilter = 'all';
+          historySearchQuery = '';
+          const searchEl = $('historySearch');
+          if (searchEl) searchEl.value = '';
+          $('historyFilterChips').querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b.dataset.histFilter === 'all');
+          });
+          renderHistory();
+        });
+        return;
+      }
+      el.innerHTML = filtered.map((h, i) => `
+        <div class="rounded-2xl p-3 border cursor-pointer hover:border-emerald-500 transition" style="border-color: var(--md-outline); background: var(--md-surface-variant);" data-hist="${allHist.indexOf(h)}">
           <div class="flex items-center justify-between mb-1">
             <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">${h.mode}</span>
             <span class="text-xs" style="color: var(--md-on-surface-muted);">${timeAgo(h.saved)}</span>
           </div>
-          <div class="font-semibold text-sm mb-1 truncate">${escapeHtml(h.topik || '(tiada topik)')}</div>
-          <div class="text-xs line-clamp-2" style="color: var(--md-on-surface-muted);">${escapeHtml(h.prompt.slice(0, 100))}...</div>
+          <div class="font-semibold text-sm mb-1 truncate">${highlightSearch(escapeHtml(h.topik || '(tiada topik)'), historySearchQuery)}</div>
+          <div class="text-xs line-clamp-2" style="color: var(--md-on-surface-muted);">${highlightSearch(escapeHtml(h.prompt.slice(0, 100)), historySearchQuery)}...</div>
         </div>
       `).join('');
       el.querySelectorAll('[data-hist]').forEach(div => {
@@ -5380,6 +7027,14 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
           }
         });
       });
+    }
+
+    // v3.8 C5: Highlight search match dalam teks
+    function highlightSearch(text, query) {
+      if (!query) return text;
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return text.replace(new RegExp(`(${escapedQuery})`, 'gi'),
+        '<mark style="background: rgba(245, 158, 11, 0.3); color: inherit; padding: 0 2px; border-radius: 2px;">$1</mark>');
     }
     function timeAgo(ts) {
       const diff = Date.now() - ts;
@@ -5577,13 +7232,34 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
     }
 
     // ============ TOAST ============
-    let toastTimer;
+    // v3.8 Phase 1 C1: Toast queue — max 3 visible, auto-dismiss 4s each
+    const TOAST_MAX_VISIBLE = 3;
+    const TOAST_DURATION = 4000;
     function showToast(msg) {
-      const el = $('toast');
-      el.textContent = msg;
-      el.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+      const stack = $('toastStack');
+      if (!stack) return;
+
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      stack.appendChild(toast);
+
+      // Trim oldest kalau lebih dari max
+      const allToasts = stack.querySelectorAll('.toast');
+      if (allToasts.length > TOAST_MAX_VISIBLE) {
+        const oldest = allToasts[0];
+        oldest.classList.remove('show');
+        setTimeout(() => oldest.remove(), 320);
+      }
+
+      // Animate in next frame
+      requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('show')));
+
+      // Auto-dismiss
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 520);
+      }, TOAST_DURATION);
     }
 
     // ============ VOICE INPUT (Web Speech API) ============
@@ -5816,9 +7492,11 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       // v3.8 Polish: Scroll sync untuk XML syntax highlighting overlay
       const outputEl = $('output');
       const highlightEl = $('outputHighlight');
+      const linesEl = $('outputLineNumbers'); // v3.8 C3
       if (outputEl && highlightEl) {
         outputEl.addEventListener('scroll', () => {
           highlightEl.scrollTop = outputEl.scrollTop;
+          if (linesEl) linesEl.scrollTop = outputEl.scrollTop;
         });
       }
       $('modeNotebook').addEventListener('click', () => setMode('notebooklm'));
@@ -5861,6 +7539,166 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('saveTemplateBtn').addEventListener('click', saveTemplate);
       $('randomBtn').addEventListener('click', loadRandom);
 
+      // v3.8 Phase 1 — A3: Confirm-on-leave kalau ada output yang belum di-copy
+      window.addEventListener('beforeunload', (e) => {
+        const hasOutput = $('output').value.trim().length > 0;
+        if (hasOutput && !state.outputCopied) {
+          // Standard pattern — browser akan tunjuk native prompt dia sendiri
+          e.preventDefault();
+          e.returnValue = ''; // Required untuk Chrome
+          return '';
+        }
+      });
+
+      // v3.8 Phase 1 — A4: Smart "Salin & Buka" combo CTA (1-click workflow)
+      async function smartCopyAndOpen(targetUrl) {
+        const val = $('output').value.trim();
+        if (!val) {
+          showToast('⚠️ Tiada output untuk disalin. Sila jana prompt dulu.');
+          return;
+        }
+        // Copy first (handle clipboard permission failures gracefully)
+        try {
+          await navigator.clipboard.writeText(val);
+        } catch (e) {
+          $('output').select();
+          document.execCommand('copy');
+        }
+        state.outputCopied = true;
+        // Visual feedback — trigger morph animation on copy button too
+        const copyBtn = $('copyBtn');
+        if (copyBtn) {
+          copyBtn.classList.add('copied');
+          setTimeout(() => copyBtn.classList.remove('copied'), 2000);
+        }
+        showToast('📋 Disalin! Membuka AI...');
+        // Open in new tab after slight delay (so user nampak feedback)
+        setTimeout(() => window.open(targetUrl, '_blank', 'noopener,noreferrer'), 300);
+        track('SmartCTA', { url: targetUrl, mode: state.mode });
+      }
+      const caraGunaSmartCta = $('caraGunaSmartCta');
+      if (caraGunaSmartCta) {
+        caraGunaSmartCta.addEventListener('click', () => {
+          const ai = AI_TARGETS.find(a => a.id === state.aiTarget) || AI_TARGETS[0];
+          smartCopyAndOpen(ai.url);
+        });
+      }
+      const aiLauncherSmartCta = $('aiLauncherSmartCta');
+      if (aiLauncherSmartCta) {
+        aiLauncherSmartCta.addEventListener('click', () => {
+          const launcher = TEXT_AI_LAUNCHERS[state.mode];
+          if (launcher) smartCopyAndOpen(launcher.url);
+        });
+      }
+
+      // v3.8 Phase 1 — A2: Auto-save draft on form change (debounced 3s)
+      // Attach single delegated listener untuk efficiency
+      const mainEl = document.querySelector('main');
+      if (mainEl) {
+        ['input', 'change'].forEach(evt => {
+          mainEl.addEventListener(evt, (e) => {
+            // Ignore output textarea (readonly) dan non-form elements
+            if (e.target.id === 'output' || e.target.id === 'outputHighlight') return;
+            scheduleDraftSave();
+          }, { passive: true });
+        });
+      }
+
+      // v3.8 Phase 2 B1: FAB Regenerate — click = re-trigger doGenerate
+      const fab = $('fabRegenerate');
+      if (fab) {
+        fab.addEventListener('click', () => {
+          // Trigger spin animation
+          fab.classList.add('spinning');
+          setTimeout(() => fab.classList.remove('spinning'), 700);
+          // Run generate
+          doGenerate();
+          track('FabRegenerate', { mode: state.mode });
+        });
+      }
+
+      // v3.8 Phase 2 B2: Keyboard shortcuts panel + global hotkeys
+      const shortcutsModal = $('shortcutsModal');
+      const openShortcuts = () => {
+        if (shortcutsModal) shortcutsModal.classList.add('open');
+      };
+      const closeShortcuts = () => {
+        if (shortcutsModal) shortcutsModal.classList.remove('open');
+      };
+      const shortcutsBtn = $('shortcutsBtn');
+      if (shortcutsBtn) shortcutsBtn.addEventListener('click', openShortcuts);
+      const shortcutsCloseBtn = $('shortcutsCloseBtn');
+      if (shortcutsCloseBtn) shortcutsCloseBtn.addEventListener('click', closeShortcuts);
+      if (shortcutsModal) {
+        shortcutsModal.addEventListener('click', (e) => {
+          if (e.target.id === 'shortcutsModal') closeShortcuts();
+        });
+      }
+      // v3.8 B5: Replay tour button
+      const replayTourBtn = $('replayTourBtn');
+      if (replayTourBtn) replayTourBtn.addEventListener('click', () => {
+        closeShortcuts();
+        setTimeout(() => {
+          resetOnboarding();
+          startOnboarding();
+        }, 320);
+      });
+
+      // Global hotkeys
+      document.addEventListener('keydown', (e) => {
+        const cmdOrCtrl = e.ctrlKey || e.metaKey;
+        const isTypingInTextarea = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT';
+
+        // Ctrl/Cmd + / — toggle shortcuts panel
+        if (cmdOrCtrl && e.key === '/') {
+          e.preventDefault();
+          if (shortcutsModal && shortcutsModal.classList.contains('open')) {
+            closeShortcuts();
+          } else {
+            openShortcuts();
+          }
+          return;
+        }
+
+        // Ctrl/Cmd + 1/2/3 — switch mode (only when not typing)
+        if (cmdOrCtrl && !isTypingInTextarea && ['1', '2', '3'].includes(e.key)) {
+          e.preventDefault();
+          const modeMap = { '1': 'gemini', '2': 'notebooklm', '3': 'imej' };
+          setMode(modeMap[e.key]);
+          showToast(`⌨️ Tukar ke Mode ${modeMap[e.key].charAt(0).toUpperCase() + modeMap[e.key].slice(1)}`);
+          return;
+        }
+
+        // Ctrl/Cmd + K — focus Topik field
+        if (cmdOrCtrl && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          const topikEl = $('topik');
+          if (topikEl && state.mode !== 'imej') {
+            topikEl.focus();
+            topikEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else if (state.mode === 'imej') {
+            const subjEl = $('imgSubject');
+            if (subjEl) {
+              subjEl.focus();
+              subjEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+          return;
+        }
+
+        // Alt + R — Reset form
+        if (e.altKey && e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          doReset();
+          return;
+        }
+
+        // Esc — close shortcuts modal
+        if (e.key === 'Escape' && shortcutsModal && shortcutsModal.classList.contains('open')) {
+          closeShortcuts();
+        }
+      });
+
       $('qrBtn').addEventListener('click', openQR);
 
       // Voice Input bindings (mic buttons on Topik & Rujukan)
@@ -5872,7 +7710,7 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       $('qrCloseBtn').addEventListener('click', closeQR);
       $('qrDownloadBtn').addEventListener('click', downloadQR);
       $('qrModal').addEventListener('click', (e) => { if (e.target.id === 'qrModal') closeQR(); });
-      // Laporan modal close behaviours
+      // Laporan modal close behaviors
       if ($('laporanModal')) {
         $('laporanModal').addEventListener('click', (e) => {
           if (e.target.id === 'laporanModal') closeLaporanModal();
@@ -5887,6 +7725,31 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
 
       $('historyBtn').addEventListener('click', openDrawer);
       $('historyCloseBtn').addEventListener('click', closeDrawer);
+
+      // v3.8 Phase 3 C5: History search + filter chip handlers
+      let histSearchTimer = null;
+      const histSearchEl = $('historySearch');
+      if (histSearchEl) {
+        histSearchEl.addEventListener('input', (e) => {
+          clearTimeout(histSearchTimer);
+          histSearchTimer = setTimeout(() => {
+            historySearchQuery = e.target.value.trim();
+            renderHistory();
+          }, 200);
+        });
+      }
+      const histChipsContainer = $('historyFilterChips');
+      if (histChipsContainer) {
+        histChipsContainer.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-hist-filter]');
+          if (!btn) return;
+          historyFilter = btn.dataset.histFilter;
+          histChipsContainer.querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b === btn);
+          });
+          renderHistory();
+        });
+      }
 
       $('themeToggle').addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
       $('langToggle').addEventListener('click', () => setLang(state.lang === 'ms' ? 'en' : 'ms'));
@@ -5983,6 +7846,23 @@ Berdasarkan parameter sistem di atas, laksanakan tugasan anda sekarang.
       bindEvents();
       renderTemplates();
       updateCounter();
+      syncHighlight(); // v3.8 A1: Trigger empty state demo on initial load
+      initOnboardingHandlers(); // v3.8 B5: Init tour handlers (not auto-start)
+
+      // v3.8 Phase 1 — A2: Check kalau ada draft untuk restore
+      const draft = getDraft();
+      if (hasSignificantDraft(draft)) {
+        const ageMs = Date.now() - (draft._savedAt || 0);
+        const ageHuman = ageMs < 60000 ? 'baru-baru ini'
+                       : ageMs < 3600000 ? `${Math.round(ageMs / 60000)} minit lalu`
+                       : ageMs < 86400000 ? `${Math.round(ageMs / 3600000)} jam lalu`
+                       : `${Math.round(ageMs / 86400000)} hari lalu`;
+        // Tunjuk restore prompt selepas 800ms (biar UI settle dulu)
+        setTimeout(() => offerRestoreDraft(draft, ageHuman), 800);
+      } else {
+        // v3.8 B5: Hanya start onboarding kalau no draft (fresh user)
+        maybeStartOnboarding();
+      }
 
       // ── Background refresh if remote configured ──
       if (REMOTE.PUB_ID) {
